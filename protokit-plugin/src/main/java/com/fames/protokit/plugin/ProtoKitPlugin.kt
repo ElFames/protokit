@@ -2,59 +2,57 @@ package com.fames.protokit.plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.JavaExec
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import kotlin.collections.forEach
 
 class ProtoKitPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
 
-        val protoDir = project.layout.projectDirectory
-            .dir("src/commonMain/protos")
+        val protoDir = project.layout.projectDirectory.dir("src/commonMain/protos")
+        val outputDir = project.layout.buildDirectory.dir("generated/protokit")
+        val codegenJar = project.rootProject.file("protokit-codegen/build/libs/protokit-codegen-0.1.0.jar")
 
-        val generatedRoot = project.layout.buildDirectory
-            .dir("generated/protokit")
-
-        val generateProtoKit = project.tasks.register<Copy>("protokitGenerate") {
+        val generateProtoKit = project.tasks.register<JavaExec>("protokitGenerate") {
             group = "protokit"
-            description = "Prepare ProtoKit gRPC sources from .proto files"
+            description = "Generate Kotlin sources from .proto files using ProtoKit"
 
-            from(protoDir)
-            into(generatedRoot)
+            mainClass.set("com.fames.protokit.codegen.ProtoKitCodegen")
 
-            include("**/*.proto")
+            classpath = project.files(codegenJar)
+
+            args(
+                protoDir.asFile.absolutePath,
+                outputDir.get().asFile.absolutePath
+            )
 
             doFirst {
-                project.logger.lifecycle(
-                    """
-                    |[ProtoKit]
-                    |Protos directory : ${protoDir.asFile}
-                    |Generated output : ${generatedRoot.get().asFile}
-                    """.trimMargin()
-                )
+                println("[ProtoKit] Running codegen")
+                println("[ProtoKit] Proto dir : ${protoDir.asFile}")
+                println("[ProtoKit] Output dir: ${outputDir.get().asFile}")
             }
         }
 
+        project.gradle.includedBuild("protokit-codegen")?.task(":codegenJar")?.let { codegenJarTask ->
+            generateProtoKit.configure {
+                dependsOn(codegenJarTask)
+            }
+        }
+
+        // 🔗 Conectar al KMP
         project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
 
-            val kotlin = project.extensions.getByType<KotlinMultiplatformExtension>()
+            val kotlin = project.extensions
+                .getByType<KotlinMultiplatformExtension>()
 
-            kotlin.sourceSets.getByName("commonMain")
-                .kotlin.srcDir(
-                    generatedRoot.map { it.asFile.resolve("commonMain") }
-                )
-
-            listOf("androidMain", "iosMain", "desktopMain").forEach { name ->
-                kotlin.sourceSets.findByName(name)?.kotlin?.srcDir(
-                    generatedRoot.map { it.asFile.resolve(name) }
-                )
-            }
+            kotlin.sourceSets
+                .getByName("commonMain")
+                .kotlin.srcDir(outputDir)
 
             project.tasks.matching {
-                it.name.startsWith("compileKotlin")
+                it.name.startsWith("compile")
             }.configureEach {
                 dependsOn(generateProtoKit)
             }
