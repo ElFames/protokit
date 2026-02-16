@@ -2,6 +2,7 @@ package com.fames.protokit.runtime
 
 import com.fames.protokit.runtime.transport.GrpcTransport
 import com.fames.protokit.runtime.transport.StreamCall
+import com.fames.protokit.runtime.transport.TransportResponse
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
