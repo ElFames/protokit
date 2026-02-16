@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package example;
-
-message ExampleUser {
-    string id = 1;
-    string name = 2;
-}

@@ -35,3 +35,4 @@ plugins {
 include(":composeApp")
 includeBuild("protokit-codegen")
 includeBuild("protokit-plugin")
+include(":protokit-runtime")

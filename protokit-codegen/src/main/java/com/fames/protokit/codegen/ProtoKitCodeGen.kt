@@ -1,11 +1,14 @@
 package com.fames.protokit.codegen
 
 import java.io.File
-
 object ProtoKitCodegen {
 
     @JvmStatic
     fun main(args: Array<String>) {
+        require(args.size == 2) {
+            "Usage: <inputProtoDir> <outputDir>"
+        }
+
         val inputDir = File(args[0])
         val outputDir = File(args[1])
 
@@ -15,6 +18,7 @@ object ProtoKitCodegen {
         inputDir.walkTopDown()
             .filter { it.extension == "proto" }
             .forEach { protoFile ->
+
                 val proto = parser.parse(protoFile.readText())
                 val files = generator.generate(proto)
 

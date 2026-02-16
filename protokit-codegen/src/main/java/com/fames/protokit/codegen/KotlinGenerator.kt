@@ -18,39 +18,75 @@ class KotlinGenerator {
 
     private fun generateMessage(pkg: String, msg: ProtoMessage): String =
         """
-        package $pkg
+package $pkg
 
-        data class ${msg.name}(
-        ${msg.fields.joinToString(",\n") {
+import com.fames.protokit.runtime.IO.*
+
+data class ${msg.name}(
+${msg.fields.joinToString(",\n") {
             "    val ${it.name}: ${mapType(it.type)}"
         }}
-        )
-        """.trimIndent()
+) {
+    internal fun encode(): ByteArray =
+        ProtoWriter().apply {
+${msg.fields.joinToString("\n") {
+            protoWriteLine(it)
+        }}
+        }.toByteArray()
+
+    companion object {
+        internal fun decode(bytes: ByteArray): ${msg.name} {
+            val reader = ProtoReader(bytes)
+            return ${msg.name}(
+${msg.fields.joinToString(",\n") {
+            "                ${it.name} = ${protoReadLine(it)}"
+        }}
+            )
+        }
+    }
+}
+""".trimIndent()
 
     private fun generateService(pkg: String, svc: ProtoService): String =
         """
-        package $pkg
+package $pkg
 
-        import protokit.runtime.ProtoKitClient
+import com.fames.protokit.runtime.ProtoKitClient
 
-        class ${svc.name}Client(
-            private val client: ProtoKitClient
-        ) {
-        ${svc.rpcs.joinToString("\n\n") { rpc ->
+class ${svc.name}Client(
+    private val client: ProtoKitClient
+) {
+${svc.rpcs.joinToString("\n\n") { rpc ->
             """
-            suspend fun ${rpc.name.replaceFirstChar { it.lowercase() }}(
-                request: ${rpc.requestType}
-            ): ${rpc.responseType} =
-                client.unary(
-                    method = "/$pkg.${svc.name}/${rpc.name}",
-                    request = request,
-                    encoder = ${rpc.requestType}Encoder,
-                    decoder = ${rpc.responseType}Decoder
-                )
-            """.trimIndent()
+    suspend fun ${rpc.name.replaceFirstChar { it.lowercase() }}(
+        request: ${rpc.requestType}
+    ): ${rpc.responseType} {
+        val resBytes = client.unary(
+            method = "/$pkg.${svc.name}/${rpc.name}",
+            requestBytes = request.encode()
+        )
+        return ${rpc.responseType}.decode(resBytes)
+    }
+""".trimIndent()
         }}
+}
+""".trimIndent()
+
+    private fun protoWriteLine(f: ProtoField): String =
+        when (f.type) {
+            "string" -> "            writeString(${f.index}, ${f.name})"
+            "int32" -> "            writeInt32(${f.index}, ${f.name})"
+            "bool" -> "            writeBool(${f.index}, ${f.name})"
+            else -> error("Unsupported type ${f.type}")
         }
-        """.trimIndent()
+
+    private fun protoReadLine(f: ProtoField): String =
+        when (f.type) {
+            "string" -> "reader.readString(${f.index})"
+            "int32" -> "reader.readInt32(${f.index})"
+            "bool" -> "reader.readBool(${f.index})"
+            else -> error("Unsupported type ${f.type}")
+        }
 
     private fun mapType(type: String): String =
         when (type) {
