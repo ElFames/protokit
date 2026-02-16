@@ -4,6 +4,8 @@ import com.fames.protokit.runtime.transport.GrpcTransport
 import com.fames.protokit.runtime.transport.StreamCall
 import com.fames.protokit.runtime.transport.TransportResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -62,7 +64,46 @@ class AndroidGrpcTransport(
         requestBytes: ByteArray,
         headers: Map<String, String>
     ): StreamCall {
-        TODO("Not yet implemented")
+
+        val framed = frame(requestBytes)
+
+        val request = Request.Builder()
+            .url("$baseUrl$method")
+            .post(framed.toRequestBody("application/grpc".toMediaType()))
+            .header("TE", "trailers")
+            .apply {
+                headers.forEach { (k, v) -> header(k, v) }
+            }
+            .build()
+
+        val call = httpClient.newCall(request)
+
+        val flow = channelFlow {
+            val response = call.execute()
+            val source = response.body?.source() ?: error("Empty stream")
+
+            try {
+                while (!source.exhausted()) {
+                    // read gRPC frame
+                    val compressed = source.readByte()
+                    val length = source.readInt()
+
+                    val message = source.readByteArray(length.toLong())
+                    send(message)
+                }
+            } catch (e: Throwable) {
+                close(e)
+            } finally {
+                response.close()
+            }
+        }
+
+        return object : StreamCall {
+            override val incoming: Flow<ByteArray> = flow
+            override suspend fun cancel() {
+                call.cancel()
+            }
+        }
     }
 
     private fun frame(data: ByteArray): ByteArray =

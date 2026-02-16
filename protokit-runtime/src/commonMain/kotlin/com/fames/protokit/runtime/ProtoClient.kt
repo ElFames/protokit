@@ -8,22 +8,26 @@ import kotlinx.coroutines.flow.Flow
 
 class ProtoClient(
     private val transport: GrpcTransport,
-    private val defaultTimeoutMillis: Long? = 15_000
+    private val defaultTimeoutMillis: Long? = 15_000,
+    private val authProvider: (suspend () -> Map<String, String>)? = null
 ) {
     suspend fun <Req, Res> unary(
         method: String,
         request: Req,
         encoder: (Req) -> ByteArray,
         decoder: (ByteArray) -> Res,
-        timeoutMillis: Long? = defaultTimeoutMillis
+        timeoutMillis: Long? = defaultTimeoutMillis,
+        headers: Map<String, String> = emptyMap()
     ): Response<Res> =
         try {
             val requestBytes = encoder(request)
+            val finalHeaders = headers.ifEmpty { authProvider?.invoke() ?: emptyMap() }
 
             val response = transport.unaryCall(
                 method = method,
                 requestBytes = requestBytes,
-                timeoutMillis = timeoutMillis
+                timeoutMillis = timeoutMillis,
+                headers = finalHeaders
             )
 
             if (response.trailers.status != GrpcStatus.OK) {
