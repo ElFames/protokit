@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.fames.protokit.runtime.ProtoKitClient
 import grpcbin.DummyRequest
+import grpcbin.GRPCBinClient
 
 @Composable
 @Preview
@@ -20,16 +21,12 @@ fun App() {
     var strResponse by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        val client = ProtoKitClient(
+        val client = GRPCBinClient(ProtoKitClient(
             provideGrpcTransport("https://grpcbin.test.k6.io")
-        )
-        val response = client.unary(
-            method = "/grpcbin.GRPCBin/DummyUnary",
-            requestBytes = DummyRequest("hi mars").encode(),
-        )
-        val stringResponse = response.decodeToString()
-        strResponse = stringResponse
-        println(stringResponse)
+        ))
+        val response = client.dummyUnary(request = DummyRequest("hi mars"))
+        println("++++++++++++++++++++++++")
+        println(response.message)
     }
 
     AnimatedContent(state) { s ->
