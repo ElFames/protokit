@@ -2,6 +2,7 @@ package com.fames.protokit.runtime
 
 import com.fames.protokit.runtime.transport.GrpcTransport
 import com.fames.protokit.runtime.transport.StreamCall
+import com.fames.protokit.runtime.transport.TransportResponse
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.HTTPBody
 import platform.Foundation.HTTPMethod
@@ -19,69 +20,41 @@ class IosGrpcTransport(
     private val baseUrl: String,
     session: NSURLSession? = null
 ) : GrpcTransport {
-
-    private val urlSession: NSURLSession =
+    private val urlSession =
         session ?: NSURLSession.sessionWithConfiguration(
-            NSURLSessionConfiguration.defaultSessionConfiguration()
+            NSURLSessionConfiguration.defaultSessionConfiguration().apply {
+                timeoutIntervalForRequest = 15.0
+            }
         )
 
     override suspend fun unaryCall(
         method: String,
         requestBytes: ByteArray,
+        timeoutMillis: Long?,
         headers: Map<String, String>
-    ): ByteArray = suspendCancellableCoroutine { cont ->
+    ): TransportResponse = suspendCancellableCoroutine { cont ->
 
-        val framed = frameGrpcMessage(requestBytes)
+        val framed = frame(requestBytes)
         val url = NSURL(string = "$baseUrl$method")
+        val timeoutInterval = (timeoutMillis ?: 15_000) / 1000.0
 
         val request = NSMutableURLRequest(url).apply {
             HTTPMethod = "POST"
             setValue("application/grpc", forHTTPHeaderField = "Content-Type")
             setValue("trailers", forHTTPHeaderField = "TE")
-
-            headers.forEach { (k, v) ->
-                setValue(v, forHTTPHeaderField = k)
-            }
-
+            setTimeoutInterval(timeoutInterval)
             HTTPBody = framed.toNSData()
+            headers.forEach { (k, v) -> setValue(v, forHTTPHeaderField = k) }
         }
 
         val task = urlSession.dataTaskWithRequest(request) { data, response, error ->
             when {
-                error != null -> {
-                    cont.resumeWithException(Throwable(error.localizedDescription))
-                }
-
-                data == null -> {
-                    cont.resumeWithException(
-                        IllegalStateException("Empty gRPC response")
-                    )
-                }
-
+                error != null -> cont.resumeWithException(Throwable(error.localizedDescription))
+                data == null -> cont.resumeWithException(IllegalStateException("Empty response"))
                 else -> {
-                    val bytes = data.toByteArray()
-
-                    if (bytes.size < 5) {
-                        cont.resumeWithException(
-                            IllegalStateException("Invalid gRPC frame size=${bytes.size}")
-                        )
-                        return@dataTaskWithRequest
-                    }
-
-                    val http = response as? NSHTTPURLResponse
-                    val contentType =
-                        http?.allHeaderFields?.get("content-type") as? String ?: ""
-
-                    if (!contentType.startsWith("application/grpc")) {
-                        cont.resumeWithException(
-                            IllegalStateException(
-                                "Not a gRPC response: Content-Type=$contentType"
-                            )
-                        )
-                        return@dataTaskWithRequest
-                    }
-
-                    cont.resume(unframeGrpcMessage(bytes))
+                    val body = unframe(data.toByteArray())
+                    val trailers = response.toGrpcTrailers()
+                    cont.resume(TransportResponse(body, trailers))
                 }
             }
         }
@@ -95,22 +68,21 @@ class IosGrpcTransport(
         requestBytes: ByteArray,
         headers: Map<String, String>
     ): StreamCall {
-        TODO("HTTP/2 streaming not implemented yet")
+        TODO("Not yet implemented")
     }
 
-    private fun frameGrpcMessage(data: ByteArray): ByteArray {
-        val result = ByteArray(5 + data.size)
-        result[0] = 0
-        val size = data.size
-        result[1] = ((size shr 24) and 0xFF).toByte()
-        result[2] = ((size shr 16) and 0xFF).toByte()
-        result[3] = ((size shr 8) and 0xFF).toByte()
-        result[4] = (size and 0xFF).toByte()
-        data.copyInto(result, 5)
-        return result
-    }
+    private fun frame(data: ByteArray): ByteArray =
+        ByteArray(5 + data.size).apply {
+            this[0] = 0
+            val size = data.size
+            this[1] = ((size shr 24) and 0xFF).toByte()
+            this[2] = ((size shr 16) and 0xFF).toByte()
+            this[3] = ((size shr 8) and 0xFF).toByte()
+            this[4] = (size and 0xFF).toByte()
+            data.copyInto(this, 5)
+        }
 
-    private fun unframeGrpcMessage(data: ByteArray): ByteArray {
+    private fun unframe(data: ByteArray): ByteArray {
         val length =
             ((data[1].toInt() and 0xFF) shl 24) or
                     ((data[2].toInt() and 0xFF) shl 16) or

@@ -5,8 +5,9 @@ interface GrpcTransport {
     suspend fun unaryCall(
         method: String,
         requestBytes: ByteArray,
+        timeoutMillis: Long?,
         headers: Map<String, String> = emptyMap()
-    ): ByteArray
+    ): TransportResponse
 
     fun serverStream(
         method: String,

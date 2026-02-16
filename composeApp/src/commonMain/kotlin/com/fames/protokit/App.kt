@@ -17,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.fames.protokit.runtime.ProtoKitClient
+import com.fames.protokit.runtime.ProtoClient
+import com.fames.protokit.runtime.models.onFailure
+import com.fames.protokit.runtime.models.onSuccess
 import example.ExampleRequest
 import example.ExampleServiceClient
 import kotlinx.coroutines.Dispatchers
@@ -32,10 +34,39 @@ fun App() {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val client = ExampleServiceClient(ProtoKitClient(provideGrpcTransport("https://gref38b0c28f03.free.beeceptor.com")))
-            val response = client.exampleMethod(request = ExampleRequest("hi"))
-            println("** Response: ${response.message}")
-            state = UiState.Success
+            // Se instancian todas las clases necesarias para el ejemplo
+            val transport = provideGrpcTransport("https://gref38b0c28f03.free.beeceptor.com")
+            val client = ProtoClient(transport)
+            val service = ExampleServiceClient(client)
+            val request = ExampleRequest("hi")
+            val response = service.exampleMethod(request)
+                .onSuccess {
+                    println(it.message)
+                    strResponse = it.message
+                    state = UiState.Idle
+                }.onFailure { error ->
+                    println("""
+                        Status: ${error.status}
+                        Message: ${error.message}
+                        Trailers: ${error.trailers.raw}
+                        TrailersInfo: ${error.trailers.message} - ${error.trailers.status}
+                    """.trimIndent())
+                    strResponse = error.message ?: error.status.name
+                    state = UiState.Idle
+                }
+
+            /*
+            Ejemplo de uso clean:
+            class ExampleApiImpl(private val client: ProtoClient) {
+                fun fetch(request: ExampleRequest): Response<ExampleResponse> {
+                    val service = ExampleServiceClient(client)
+                    return service.exampleMethod(request).map { it.toDomain() }
+                }
+            }
+            Las clases y los metodos son autogenerados y se hace encapsulacion del error
+            Solo hay que proveer un ProtoClient con la URL y la Request que ha sido autogenerada
+            */
+
         }
     }
 
@@ -49,7 +80,7 @@ fun App() {
                 UiState.Loading -> {
                     CircularProgressIndicator()
                 }
-                UiState.Success -> {
+                UiState.Idle -> {
                     Text(strResponse)
                 }
             }
@@ -59,5 +90,5 @@ fun App() {
 
 sealed class UiState {
     object Loading : UiState()
-    data object Success : UiState()
+    data object Idle : UiState()
 }

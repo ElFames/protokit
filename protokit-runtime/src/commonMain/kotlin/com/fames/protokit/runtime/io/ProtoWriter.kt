@@ -1,4 +1,4 @@
-package com.fames.protokit.runtime.IO
+package com.fames.protokit.runtime.io
 
 class ProtoWriter {
 
