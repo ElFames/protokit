@@ -11,23 +11,28 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.fames.protokit.runtime.ProtoKitClient
+import example.ExampleRequest
+import example.ExampleServiceClient
 import grpcbin.DummyRequest
 import grpcbin.GRPCBinClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 
 @Composable
 @Preview
 fun App() {
-    val state by remember { mutableStateOf<UiState>(UiState.Loading) }
+    var state by remember { mutableStateOf<UiState>(UiState.Loading) }
     var strResponse by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        val client = GRPCBinClient(ProtoKitClient(
-            provideGrpcTransport("https://grpcbin.test.k6.io")
+    LaunchedEffect(Unit) { withContext(Dispatchers.IO) {
+        val client = ExampleServiceClient(ProtoKitClient(
+            provideGrpcTransport("https://gref38b0c28f03.free.beeceptor.com")
         ))
-        val response = client.dummyUnary(request = DummyRequest("hi mars"))
-        println("++++++++++++++++++++++++")
-        println(response.message)
-    }
+        val response = client.exampleMethod(request = ExampleRequest("hi"))
+        println("** Response: ${response.message}")
+        state = UiState.Idle
+    } }
 
     AnimatedContent(state) { s ->
         when(s) {

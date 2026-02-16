@@ -13,7 +13,7 @@ class AndroidGrpcTransport(
 ) : GrpcTransport {
 
     private val httpClient = client ?: OkHttpClient.Builder()
-        .protocols(listOf(Protocol.HTTP_2))
+        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
         .build()
 
     override suspend fun unaryCall(
@@ -26,13 +26,11 @@ class AndroidGrpcTransport(
         val request = Request.Builder()
             .url("$baseUrl$method")
             .post(framed.toRequestBody("application/grpc".toMediaType()))
-            .header("te", "trailers")
+            .header("TE", "trailers")
             .build()
 
         httpClient.newCall(request).execute().use { res ->
             val body = res.body?.bytes() ?: error("Empty gRPC body")
-
-            // quitar framing
             val messageLength = ByteBuffer.wrap(body, 1, 4).int
             return body.copyOfRange(5, 5 + messageLength)
         }
