@@ -5,6 +5,7 @@ import com.fames.protokit.runtime.transport.StreamCall
 import kotlinx.coroutines.suspendCancellableCoroutine
 import platform.Foundation.HTTPBody
 import platform.Foundation.HTTPMethod
+import platform.Foundation.NSHTTPURLResponse
 import platform.Foundation.NSMutableURLRequest
 import platform.Foundation.NSURL
 import platform.Foundation.NSURLSession
@@ -31,13 +32,12 @@ class IosGrpcTransport(
     ): ByteArray = suspendCancellableCoroutine { cont ->
 
         val framed = frameGrpcMessage(requestBytes)
-
         val url = NSURL(string = "$baseUrl$method")
 
         val request = NSMutableURLRequest(url).apply {
             HTTPMethod = "POST"
-            setValue("application/grpc", forHTTPHeaderField = "content-type")
-            setValue("trailers", forHTTPHeaderField = "te")
+            setValue("application/grpc", forHTTPHeaderField = "Content-Type")
+            setValue("trailers", forHTTPHeaderField = "TE")
 
             headers.forEach { (k, v) ->
                 setValue(v, forHTTPHeaderField = k)
@@ -53,16 +53,40 @@ class IosGrpcTransport(
                 }
 
                 data == null -> {
-                    cont.resumeWithException(IllegalStateException("Empty gRPC response"))
+                    cont.resumeWithException(
+                        IllegalStateException("Empty gRPC response")
+                    )
                 }
 
                 else -> {
                     val bytes = data.toByteArray()
+
+                    if (bytes.size < 5) {
+                        cont.resumeWithException(
+                            IllegalStateException("Invalid gRPC frame size=${bytes.size}")
+                        )
+                        return@dataTaskWithRequest
+                    }
+
+                    val http = response as? NSHTTPURLResponse
+                    val contentType =
+                        http?.allHeaderFields?.get("content-type") as? String ?: ""
+
+                    if (!contentType.startsWith("application/grpc")) {
+                        cont.resumeWithException(
+                            IllegalStateException(
+                                "Not a gRPC response: Content-Type=$contentType"
+                            )
+                        )
+                        return@dataTaskWithRequest
+                    }
+
                     cont.resume(unframeGrpcMessage(bytes))
                 }
             }
         }
 
+        cont.invokeOnCancellation { task.cancel() }
         task.resume()
     }
 
@@ -71,12 +95,12 @@ class IosGrpcTransport(
         requestBytes: ByteArray,
         headers: Map<String, String>
     ): StreamCall {
-        TODO("Implement HTTP/2 streaming later")
+        TODO("HTTP/2 streaming not implemented yet")
     }
 
     private fun frameGrpcMessage(data: ByteArray): ByteArray {
         val result = ByteArray(5 + data.size)
-        result[0] = 0 // no compression
+        result[0] = 0
         val size = data.size
         result[1] = ((size shr 24) and 0xFF).toByte()
         result[2] = ((size shr 16) and 0xFF).toByte()
@@ -95,6 +119,4 @@ class IosGrpcTransport(
 
         return data.copyOfRange(5, 5 + length)
     }
-
 }
-
