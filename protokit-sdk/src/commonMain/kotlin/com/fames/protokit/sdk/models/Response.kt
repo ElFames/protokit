@@ -30,6 +30,13 @@ inline fun <T> Response<T>.onFailure(action: (Response.Failure) -> Unit): Respon
 fun <T> Response<T>.getValueOrNull(): T? =
     (this as? Response.Success)?.value
 
+fun <T> Response<T>.getTrailers(): GrpcTrailers {
+    return when (this) {
+        is Response.Success -> trailers
+        is Response.Failure -> trailers
+    }
+}
+
 fun <T> Response<T>.getErrorOrNull(): Response.Failure? =
     this as? Response.Failure
 

@@ -21,13 +21,14 @@ internal object ProtoParser {
             val name = match.groupValues[1]
             val body = match.groupValues[2]
 
-            val fields = Regex("""(\w+)\s+(\w+)\s*=\s*(\d+);""")
+            val fields = Regex("""\s*(repeated|optional)?\s*([\w.]+)\s+(\w+)\s*=\s*(\d+);""")
                 .findAll(body)
                 .map {
                     ProtoField(
-                        type = it.groupValues[1],
-                        name = it.groupValues[2],
-                        index = it.groupValues[3].toInt()
+                        label = it.groupValues[1].ifEmpty { null },
+                        type = it.groupValues[2],
+                        name = it.groupValues[3],
+                        index = it.groupValues[4].toInt()
                     )
                 }.toList()
 

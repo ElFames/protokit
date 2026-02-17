@@ -1,52 +1,81 @@
 package com.fames.protokit.core.io
 
-class ProtoReader(
-    private val bytes: ByteArray
-) {
+class ProtoReader(private val bytes: ByteArray) {
     private var pos = 0
 
-    fun readString(tag: Int): String =
-        find(tag)?.let {
-            val len = readVarInt()
-            val str = bytes.copyOfRange(pos, pos + len).decodeToString()
-            pos += len
-            str
-        } ?: ""
-
-    fun readInt32(tag: Int): Int =
-        find(tag)?.let { readVarInt() } ?: 0
-
-    fun readBool(tag: Int): Boolean =
-        readInt32(tag) != 0
-
-    private fun find(tag: Int): Boolean {
-        pos = 0
-        while (pos < bytes.size) {
-            val key = readVarInt()
-            val field = key shr 3
-            val wire = key and 7
-            if (field == tag) return true
-            skip(wire)
-        }
-        return false
+    fun readTag(): Pair<Int, Int>? {
+        if (pos >= bytes.size) return null
+        val key = readVarInt().toInt()
+        val field = key ushr 3
+        val wire = key and 7
+        return Pair(field, wire)
     }
 
-    private fun skip(wire: Int) {
+    fun readString(): String {
+        val len = readVarInt().toInt()
+        val str = bytes.decodeToString(pos, pos + len)
+        pos += len
+        return str
+    }
+
+    fun readBytes(): ByteArray {
+        val len = readVarInt().toInt()
+        val result = bytes.copyOfRange(pos, pos + len)
+        pos += len
+        return result
+    }
+
+    fun readInt32(): Int = readVarInt().toInt()
+
+    fun readInt64(): Long = readVarInt()
+
+    fun readBool(): Boolean = readVarInt() != 0L
+
+    fun readFloat(): Float {
+        val value = Float.fromBits(
+            (bytes[pos].toInt() and 0xFF) or
+            ((bytes[pos + 1].toInt() and 0xFF) shl 8) or
+            ((bytes[pos + 2].toInt() and 0xFF) shl 16) or
+            ((bytes[pos + 3].toInt() and 0xFF) shl 24)
+        )
+        pos += 4
+        return value
+    }
+
+    fun readDouble(): Double {
+        val value = Double.fromBits(
+            (bytes[pos].toLong() and 0xFF) or
+            ((bytes[pos + 1].toLong() and 0xFF) shl 8) or
+            ((bytes[pos + 2].toLong() and 0xFF) shl 16) or
+            ((bytes[pos + 3].toLong() and 0xFF) shl 24) or
+            ((bytes[pos + 4].toLong() and 0xFF) shl 32) or
+            ((bytes[pos + 5].toLong() and 0xFF) shl 40) or
+            ((bytes[pos + 6].toLong() and 0xFF) shl 48) or
+            ((bytes[pos + 7].toLong() and 0xFF) shl 56)
+        )
+        pos += 8
+        return value
+    }
+
+    fun skip(wire: Int) {
         when (wire) {
-            0 -> readVarInt()
-            2 -> pos += readVarInt()
-            else -> error("Unsupported wire type")
+            0 -> readVarInt() // Skip varint
+            1 -> pos += 8      // Skip 64-bit
+            2 -> pos += readVarInt().toInt() // Skip length-delimited
+            5 -> pos += 4      // Skip 32-bit
+            else -> error("Unsupported wire type: $wire")
         }
     }
 
-    private fun readVarInt(): Int {
+    private fun readVarInt(): Long {
         var shift = 0
-        var result = 0
-        while (true) {
-            val b = bytes[pos++].toInt()
-            result = result or ((b and 0x7F) shl shift)
-            if (b and 0x80 == 0) return result
+        var result = 0L
+        while (shift < 64) {
+            val b = bytes[pos++]
+            result = result or ((b.toLong() and 0x7F) shl shift)
+            if ((b.toInt() and 0x80) == 0) return result
             shift += 7
         }
+        error("Malformed varint")
     }
 }

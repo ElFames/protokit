@@ -18,41 +18,50 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.fames.protokit.sdk.ProtoClient
+import com.fames.protokit.sdk.models.getTrailers
 import com.fames.protokit.sdk.models.onFailure
 import com.fames.protokit.sdk.models.onSuccess
-import example.ExampleRequest
-import example.ExampleServiceClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
+import protos.GetUserRequest
+import protos.UserServiceClient
 
 @Composable
 @Preview
 fun App() {
+
     var state by remember { mutableStateOf<UiState>(UiState.Loading) }
     var strResponse by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            // Se instancian todas las clases necesarias para el ejemplo
-            val client = ProtoClient("https://gref38b0c28f03.free.beeceptor.com")
-            val service = ExampleServiceClient(client)
-            val request = ExampleRequest("hi")
-            val response = service.exampleMethod(request)
-                .onSuccess {
-                    println(it.message)
-                    strResponse = it.message
-                    state = UiState.Idle
-                }.onFailure { error ->
-                    println("""
-                        Status: ${error.status}
-                        Message: ${error.message}
-                        Trailers: ${error.trailers.raw}
-                        TrailersInfo: ${error.trailers.message} - ${error.trailers.status}
-                    """.trimIndent())
-                    strResponse = error.message ?: error.status.name
-                    state = UiState.Idle
-                }
+            // Hay que instanciar un ProtoClient con las defaults configs que
+            val client = ProtoClient("https://gre71378c17a79.free.beeceptor.com")
+
+            // Instanciar servicio autogenerado
+            val service = UserServiceClient(client)
+
+            // Llamar al metodo del servicio con la request requerida
+            val response = service.getUserProfile(GetUserRequest(id = 1))
+
+            response.onSuccess { user ->
+                println("""
+                       User: $user
+                       Trailers: ${response.getTrailers().raw}
+                   """.trimIndent())
+                strResponse = user.toString()
+                state = UiState.Idle
+            }.onFailure { error ->
+                println("""
+                    Error
+                       Status: ${error.status}
+                       Message: ${error.message}
+                       Trailers: ${response.getTrailers().raw}
+                   """.trimIndent())
+                strResponse = error.message ?: error.status.name
+                state = UiState.Idle
+            }
 
             /*
             Ejemplo de uso:
@@ -61,8 +70,6 @@ fun App() {
                     return ExampleServiceClient(client).exampleMethod(request).map { it.toDomain() }
                 }
             }
-            Las clases y los metodos son autogenerados y se hace encapsulacion del error
-            Solo hay que proveer un ProtoClient y la Request necesaria
             */
 
         }

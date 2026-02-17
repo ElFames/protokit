@@ -9,14 +9,14 @@ import kotlinx.coroutines.flow.Flow
 class ProtoClient(
     private val baseUrl: String,
     private val defaultTimeoutMillis: Long? = 15_000,
-    private val authProvider: (suspend () -> Map<String, String>)? = null
+    private val defaultHeaders: (suspend () -> Map<String, String>)? = null
 ) {
     private val transport: GrpcTransport = provideGrpcTransport(baseUrl)
 
     private val client = InternalProtoClient(
         transport = transport,
         defaultTimeoutMillis = defaultTimeoutMillis,
-        authProvider = authProvider
+        defaultHeaders = defaultHeaders
     )
 
     suspend fun <Req, Res> unary(

@@ -12,6 +12,7 @@ internal data class ProtoMessage(
 )
 
 internal data class ProtoField(
+    val label: String?,
     val type: String,
     val name: String,
     val index: Int
