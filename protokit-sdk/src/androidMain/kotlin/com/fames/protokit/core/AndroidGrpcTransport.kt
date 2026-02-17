@@ -3,6 +3,8 @@ package com.fames.protokit.core
 import com.fames.protokit.core.transport.GrpcTransport
 import com.fames.protokit.core.transport.StreamCall
 import com.fames.protokit.core.transport.TransportResponse
+import com.fames.protokit.sdk.models.GrpcStatus
+import com.fames.protokit.sdk.models.GrpcTrailers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -146,4 +148,16 @@ internal class AndroidGrpcTransport(
         val length = ByteBuffer.wrap(data, 1, 4).int
         return data.copyOfRange(5, 5 + length)
     }
+}
+
+internal fun Headers.toGrpcTrailers(): GrpcTrailers {
+    val status = this["grpc-status"]?.toIntOrNull()?.let {
+        GrpcStatus.fromCode(it)
+    } ?: GrpcStatus.UNKNOWN
+
+    return GrpcTrailers(
+        status = status,
+        message = this["grpc-message"],
+        raw = toMultimap().mapValues { it.value.joinToString(",") }
+    )
 }

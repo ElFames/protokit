@@ -56,7 +56,7 @@ El plugin de ProtoKit busca por defecto los archivos `.proto` en `src/commonMain
 ## 💡 Quick Start
 
 ```kotlin
-// 1. Configurar el cliente base
+// 1. Configurar el cliente base, opcional con headers por defecto y default 15s timeout configurable
 val client = ProtoClient(
     baseUrl = "https://api.tu-servicio.com",
     headers = mapOf("Authorization" to "Bearer ${token}")
