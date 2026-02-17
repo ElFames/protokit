@@ -17,9 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.fames.protokit.runtime.ProtoClient
-import com.fames.protokit.runtime.models.onFailure
-import com.fames.protokit.runtime.models.onSuccess
+import com.fames.protokit.sdk.ProtoClient
+import com.fames.protokit.sdk.models.onFailure
+import com.fames.protokit.sdk.models.onSuccess
 import example.ExampleRequest
 import example.ExampleServiceClient
 import kotlinx.coroutines.Dispatchers
@@ -35,8 +35,7 @@ fun App() {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             // Se instancian todas las clases necesarias para el ejemplo
-            val transport = provideGrpcTransport("https://gref38b0c28f03.free.beeceptor.com")
-            val client = ProtoClient(transport)
+            val client = ProtoClient("https://gref38b0c28f03.free.beeceptor.com")
             val service = ExampleServiceClient(client)
             val request = ExampleRequest("hi")
             val response = service.exampleMethod(request)
@@ -56,15 +55,14 @@ fun App() {
                 }
 
             /*
-            Ejemplo de uso clean:
+            Ejemplo de uso:
             class ExampleApiImpl(private val client: ProtoClient) {
                 fun fetch(request: ExampleRequest): Response<ExampleResponse> {
-                    val service = ExampleServiceClient(client)
-                    return service.exampleMethod(request).map { it.toDomain() }
+                    return ExampleServiceClient(client).exampleMethod(request).map { it.toDomain() }
                 }
             }
             Las clases y los metodos son autogenerados y se hace encapsulacion del error
-            Solo hay que proveer un ProtoClient con la URL y la Request que ha sido autogenerada
+            Solo hay que proveer un ProtoClient y la Request necesaria
             */
 
         }
