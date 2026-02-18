@@ -25,7 +25,16 @@ class ProtoReader(private val bytes: ByteArray) {
         return result
     }
 
+    fun readObject(): ProtoReader {
+        val len = readVarInt().toInt()
+        val reader = ProtoReader(bytes.copyOfRange(pos, pos + len))
+        pos += len
+        return reader
+    }
+
     fun readInt32(): Int = readVarInt().toInt()
+
+    fun readEnum(): Int = readInt32()
 
     fun readInt64(): Long = readVarInt()
 

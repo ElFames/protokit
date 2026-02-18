@@ -23,11 +23,21 @@ class ProtoWriter {
         buffer.addAll(value.toList())
     }
 
-    fun writeObject(tag: Int, value: ByteArray) {
-        writeBytes(tag, value)
+    fun writeObject(tag: Int, writer: () -> ByteArray) {
+        val bytes = writer()
+        if (bytes.isEmpty()) return
+        writeTag(tag, 2)
+        writeVarInt(bytes.size.toLong())
+        buffer.addAll(bytes.toList())
     }
 
     fun writeInt32(tag: Int, value: Int) {
+        if (value == 0) return
+        writeTag(tag, 0)
+        writeVarInt(value.toLong())
+    }
+
+    fun writeEnum(tag: Int, value: Int) {
         if (value == 0) return
         writeTag(tag, 0)
         writeVarInt(value.toLong())
