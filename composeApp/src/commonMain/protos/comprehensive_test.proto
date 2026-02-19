@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package com.fames.protokit.test;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/wrappers.proto";
+
+option java_package = "com.fames.protokit.test.gen";
+option java_multiple_files = true;
+
+service ComprehensiveTestService {
+    rpc UnaryCall(UnaryRequest) returns (UnaryResponse);
+}
+
+enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_ACTIVE = 2;
+    STATUS_ARCHIVED = 3;
+}
+
+message ComprehensiveMessage {
+    double double_field = 1;
+    float float_field = 2;
+    int32 int32_field = 3;
+    int64 int64_field = 4;
+    bool bool_field = 13;
+    string string_field = 14;
+    bytes bytes_field = 15;
+
+    Status status = 16;
+
+    message NestedMessage {
+        string nested_string = 1;
+    }
+    NestedMessage nested_field = 17;
+
+    repeated string repeated_strings = 20;
+    repeated int32 repeated_int32s = 21;
+    repeated NestedMessage repeated_nested = 22;
+
+    map<string, int32> string_to_int32_map = 30;
+    map<int32, NestedMessage> int32_to_nested_map = 31;
+
+    oneof oneof_field {
+        string oneof_string = 40;
+        int32 oneof_int32 = 41;
+        NestedMessage oneof_nested = 42;
+    }
+
+    google.protobuf.Timestamp timestamp_field = 50;
+    google.protobuf.Duration duration_field = 51;
+    google.protobuf.Any any_field = 52;
+    google.protobuf.StringValue string_wrapper_field = 53;
+    google.protobuf.Int32Value int32_wrapper_field = 54;
+}
+
+message UnaryRequest {
+    int32 id = 1;
+    ComprehensiveMessage payload = 2;
+}
+
+message UnaryResponse {
+    string message = 1;
+    ComprehensiveMessage payload = 2;
+}

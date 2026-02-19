@@ -32,15 +32,16 @@ internal object ProtoParser {
 
             val oneofs = parseOneofs(body)
 
-            val fields = Regex("""\s*(repeated|optional)?\s*(map<\s*(\w+)\s*,\s*(\w+)\s*>|([\w.]+))\s+(\w+)\s*=\s*(\d+);""")
+            val fields = Regex("""\s*(repeated|optional)?\s*(map<\s*([\w.]+)\s*,\s*([\w.]+)\s*>|([\w.]+))\s+(\w+)\s*=\s*(\d+);""")
                 .findAll(body)
                 .map {
-                    val oneofIndex = oneofs.indexOfFirst { oneof -> oneof.fields.any { f -> f.name == it.groupValues[5] } }
+                    val fieldName = it.groupValues[6]
+                    val oneofIndex = oneofs.indexOfFirst { oneof -> oneof.fields.any { f -> f.name == fieldName } }
                     ProtoField(
                         label = it.groupValues[1].ifEmpty { null },
                         type = it.groupValues[2],
-                        name = it.groupValues[5],
-                        index = it.groupValues[6].toInt(),
+                        name = fieldName,
+                        index = it.groupValues[7].toInt(),
                         keyType = it.groupValues[3].ifEmpty { null },
                         valueType = it.groupValues[4].ifEmpty { null },
                         oneofIndex = if (oneofIndex != -1) oneofIndex else null
@@ -87,7 +88,7 @@ internal object ProtoParser {
             val body = match.groupValues[2]
 
             val rpcs = Regex(
-                """rpc\s+(\w+)\s*\(\s*(\w+)\s*\)\s*returns\s*\(\s*(\w+)\s*\)"""
+                """rpc\s+(\w+)\s*\(\s*([\w.]+)\s*\)\s*returns\s*\(\s*([\w.]+)\s*\)"""
             ).findAll(body).map {
                 ProtoRpc(
                     name = it.groupValues[1],

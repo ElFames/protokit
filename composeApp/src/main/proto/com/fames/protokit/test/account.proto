@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package com.fames.protokit.test;
+
+import "com/fames/protokit/test/user.proto";
+
+option java_package = "com.fames.protokit.test.gen";
+option java_multiple_files = true;
+
+message Account {
+    string account_id = 1;
+    User user = 2;
+}
