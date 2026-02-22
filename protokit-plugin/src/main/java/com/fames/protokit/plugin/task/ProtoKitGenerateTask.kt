@@ -1,6 +1,7 @@
 package com.fames.protokit.plugin.task
 
 import com.fames.protokit.plugin.codegen.ProtoKitCodegen
+import com.google.protobuf.DescriptorProtos
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
@@ -24,7 +25,7 @@ abstract class ProtoKitGenerateTask : DefaultTask() {
      * Anotado como @InputDirectory para que Gradle pueda rastrear los cambios.
      */
     @get:InputDirectory
-    abstract val protoDir: DirectoryProperty
+    abstract val protoDir: DescriptorProtos.FileDescriptorProto
 
     /**
      * El directorio donde se generará el código Kotlin.
@@ -41,7 +42,6 @@ abstract class ProtoKitGenerateTask : DefaultTask() {
     fun execute() {
         // La lógica de logging y ejecución vive aquí, de forma segura.
         logger.lifecycle("[ProtoKit] Running codegen...")
-        logger.lifecycle("[ProtoKit] Proto dir : ${protoDir.get().asFile.path}")
         logger.lifecycle("[ProtoKit] Output dir: ${outputDir.get().asFile.path}")
 
         // Limpia el directorio de salida antes de generar para evitar archivos antiguos.
@@ -49,11 +49,9 @@ abstract class ProtoKitGenerateTask : DefaultTask() {
         outputDir.get().asFile.mkdirs()
 
         // Llama a tu lógica de generación de código.
-        ProtoKitCodegen.main(
-            arrayOf(
-                protoDir.get().asFile.absolutePath,
-                outputDir.get().asFile.absolutePath
-            )
+        ProtoKitCodegen(
+            protoDir,
+            outputDir.get().asFile
         )
         logger.lifecycle("[ProtoKit] Codegen finished successfully.")
     }

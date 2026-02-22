@@ -24,8 +24,7 @@ import com.fames.protokit.sdk.models.onSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-import protos.GetUserRequest
-import protos.UserServiceClient
+
 
 @Composable
 @Preview
@@ -38,30 +37,6 @@ fun App() {
         withContext(Dispatchers.IO) {
             // Hay que instanciar un ProtoClient con las defaults configs que
             val client = ProtoClient("https://gre71378c17a79.free.beeceptor.com")
-
-            // Instanciar servicio autogenerado
-            val service = UserServiceClient(client)
-
-            // Llamar al metodo del servicio con la request requerida
-            val response = service.getUserProfile(GetUserRequest(id = 1))
-
-            response.onSuccess { user ->
-                println("""
-                       User: $user
-                       Trailers: ${response.getTrailers().raw}
-                   """.trimIndent())
-                strResponse = user.toString()
-                state = UiState.Idle
-            }.onFailure { error ->
-                println("""
-                    Error
-                       Status: ${error.status}
-                       Message: ${error.message}
-                       Trailers: ${response.getTrailers().raw}
-                   """.trimIndent())
-                strResponse = error.message ?: error.status.name
-                state = UiState.Idle
-            }
 
             /*
             Ejemplo de uso:

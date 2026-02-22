@@ -30,6 +30,10 @@ repositories {
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
+    compileOnly("com.google.protobuf:protobuf-gradle-plugin:0.9.4")
+    implementation("com.squareup:kotlinpoet:1.17.0")
+    // Align protobuf-java-util version with the one used by protoc in the gradle plugin
+    implementation("com.google.protobuf:protobuf-java-util:3.22.3")
 }
 
 kotlin {
