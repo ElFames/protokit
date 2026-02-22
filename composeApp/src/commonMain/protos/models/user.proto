@@ -1,13 +1,17 @@
 syntax = "proto3";
 
-package protos;
+package models;
+
+import "models/common.proto";
 
 option java_package = "com.fames.protokit.test.models";
+option java_multiple_files = true;
 
 message User {
   string id = 1;
   string display_name = 2;
   Role role = 3;
+  Timestamp created_at = 4;
 }
 
 enum Role {

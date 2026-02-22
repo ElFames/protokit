@@ -212,7 +212,7 @@ class ProtoKitCodegen(
                 body.addStatement("writer.writeEnum(%L, %N.ordinal)", field.number, finalValueIdentifier)
             }
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE -> {
-                body.addStatement("writer.writeObject(%L, %N) { it.encode() }", field.number, finalValueIdentifier)
+                body.addStatement("writer.writeObject(%L) { %N.encode() }", field.number, finalValueIdentifier)
             }
             else -> {
                 val methodSuffix = getProtoMethodSuffix(field.type)
@@ -281,7 +281,7 @@ class ProtoKitCodegen(
 
         return TypeSpec.companionObjectBuilder()
             .addFunction(FunSpec.builder("decode").addParameter("bytes", ByteArray::class).returns(className).addStatement("return decode(%T(bytes))", PROTO_READER_CLASS_NAME).build())
-            .addFunction(FunSpec.builder("decode").addParameter("reader", PROTO_READER_CLASS_NAME).returns(className).addCode(body.build()).addModifiers(KModifier.PRIVATE).build())
+            .addFunction(FunSpec.builder("decode").addParameter("reader", PROTO_READER_CLASS_NAME).returns(className).addCode(body.build()).build())
             .build()
     }
     
