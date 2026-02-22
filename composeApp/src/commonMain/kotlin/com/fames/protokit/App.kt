@@ -21,10 +21,11 @@ import com.fames.protokit.sdk.ProtoClient
 import com.fames.protokit.sdk.models.getTrailers
 import com.fames.protokit.sdk.models.onFailure
 import com.fames.protokit.sdk.models.onSuccess
+import com.fames.protokit.test.services.GetUserRequest
+import com.fames.protokit.test.services.UserServiceClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
-
 
 @Composable
 @Preview
@@ -36,7 +37,18 @@ fun App() {
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
             // Hay que instanciar un ProtoClient con las defaults configs que
-            val client = ProtoClient("https://gre71378c17a79.free.beeceptor.com")
+            val client = ProtoClient("https://grd1442c9beb7f.free.beeceptor.com")
+            UserServiceClient(client).getUser(GetUserRequest(user_id = "exampleId"))
+                .onSuccess { user ->
+                    println("Repuesta Éxitosa. Usuario: ${user.display_name} (${user.role.name.lowercase().replaceFirstChar { it.titlecase() }})")
+                }.onFailure { error ->
+                    println("""
+                        Error en la respuesta.
+                        Status: ${error.status}
+                        Mesage: ${error.message}
+                        Trailers: ${error.trailers}
+                    """.trimIndent())
+                }
 
             /*
             Ejemplo de uso:

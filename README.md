@@ -16,14 +16,13 @@
 
 ### ✅ Features
 - **Unary Calls**: Full support for the standard gRPC request-response flow.
-- **Proto3 Data Types**: Includes `string`, `int32`, `int64`, `bool`, `float`, `double`, `bytes`, nested messages, `enums`, and `repeated` fields.
+- **Proto3 Data Types**: Includes `string`, `int32`, `int64`, `bool`, `float`, `double`, `bytes`, nested messages, `enums`, `repeated`, `map`, `oneof`, and `any` fields.
 - **Robust Code Generation**: Powered by the official `protoc` compiler (`4.33.5`) and `kotlinpoet` (`2.2.0`) for clean, predictable code.
 - **Cross-File Imports**: Messages from one `.proto` file can be used in another, and the plugin will resolve them correctly.
 
 ### ❌ Not Supported
 - **gRPC Streaming**: Client, server, or bidirectional streaming is not yet supported.
 - **Interceptors**: No support for client-side interceptors at this time.
-- **`oneof`, `map`, `any`**: These Protobuf types are not yet implemented.
 
 ---
 
