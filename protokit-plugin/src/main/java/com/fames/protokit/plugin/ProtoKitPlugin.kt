@@ -1,69 +1,69 @@
 package com.fames.protokit.plugin
 
-import com.fames.protokit.plugin.codegen.ProtoKitCodegen
-import com.google.protobuf.DescriptorProtos
+import com.google.protobuf.gradle.GenerateProtoTask
 import com.google.protobuf.gradle.ProtobufExtension
+import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.plugins.ExtensionAware
 import org.gradle.kotlin.dsl.getByType
+import org.gradle.kotlin.dsl.named
+import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
-import java.io.FileInputStream
+import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
 
 class ProtoKitPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
-        project.plugins.withId("com.google.protobuf") {
-            val protobufExtension = project.extensions.getByType<ProtobufExtension>()
+        project.pluginManager.apply("com.google.protobuf")
 
-            // 1. Configure protoc to generate a single descriptor set file.
-            val descriptorSetFile = project.layout.buildDirectory.file("protokit/descriptor.pb").get().asFile
-            protobufExtension.generateProtoTasks.all().forEach { task ->
-                task.generateDescriptorSet = true
-                task.descriptorSetOptions.path = descriptorSetFile.absolutePath
-                task.descriptorSetOptions.includeImports = true
-                task.descriptorSetOptions.includeSourceInfo = true
+        val outputDir = project.layout.buildDirectory.dir("generated/protos")
+        val descriptorSetFile = project.layout.buildDirectory.file("protokit/descriptor.pb").get().asFile
+
+        // 1. Configure the protoc artifact version.
+        project.extensions.getByType<ProtobufExtension>().protoc {
+            artifact = "com.google.protobuf:protoc:4.33.5"
+        }
+
+        // 2. Register our custom code generation task.
+        val generateProtoKitTask = project.tasks.register("generateProtoKitCode", ProtoKitCodegenTask::class.java) {
+            descriptorSet.set(descriptorSetFile)
+            outputDirectory.set(outputDir)
+        }
+
+        // 3. Hook generated code and configure sources.
+        project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
+            project.extensions.getByType<KotlinMultiplatformExtension>()
+                .sourceSets.findByName("commonMain")?.kotlin?.srcDir(outputDir)
+
+            project.tasks.withType<AbstractKotlinCompile<*>>().configureEach {
+                dependsOn(generateProtoKitTask)
             }
 
-            // 2. Register our code generation task.
-            val outputDir = project.layout.buildDirectory.dir("generated/source/protokit/commonMain")
-            val generateProtoKitTask = project.tasks.register("generateProtoKitCode") {
-                group = "protokit"
-                description = "Generates KMP gRPC clients from proto files."
+            // In a KMP project, we must wait for BOTH plugins before configuring Android source sets.
+            project.plugins.withId("com.android.application") {
+                val androidExtension = project.extensions.getByName("android")
+                // Access the 'sourceSets' property via reflection, as it's a direct property, not an extension.
+                val sourceSets = androidExtension::class.java.getMethod("getSourceSets").invoke(androidExtension) as NamedDomainObjectContainer<*>
+                val mainSourceSet = sourceSets.getByName("main") as ExtensionAware
+                val protoSourceSet = mainSourceSet.extensions.getByName("proto") as SourceDirectorySet
+                protoSourceSet.srcDir("src/commonMain/protos")
+            }
+        }
 
-                inputs.file(descriptorSetFile).withPathSensitivity(PathSensitivity.NONE)
-                outputs.dir(outputDir)
-
-                doLast {
-                    if (!descriptorSetFile.exists() || descriptorSetFile.length() == 0L) {
-                        logger.warn("ProtoKit: Descriptor set file not found or empty. Skipping generation.")
-                        return@doLast
-                    }
-
-                    FileInputStream(descriptorSetFile).use { fis ->
-                        val fileDescriptorSet = DescriptorProtos.FileDescriptorSet.parseFrom(fis)
-                        fileDescriptorSet.fileList.forEach { fileDescriptor ->
-                            ProtoKitCodegen(fileDescriptor, outputDir.get().asFile).generate()
-                        }
-                    }
-                }
+        // 4. Defer configuration that depends on specific task names (e.g., from build variants).
+        project.afterEvaluate {
+            val generateDebugProtoProvider = tasks.named<GenerateProtoTask>("generateDebugProto") {
+                generateDescriptorSet = true
+                descriptorSetOptions.path = descriptorSetFile.absolutePath
+                descriptorSetOptions.includeImports = true
+                descriptorSetOptions.includeSourceInfo = true
             }
 
-            // 3. Wire our task to run after the descriptor is created.
-            protobufExtension.generateProtoTasks.all().forEach { protoTask ->
-                generateProtoKitTask.get().dependsOn(protoTask)
-            }
-
-            // 4. Add the generated directory to the Kotlin 'commonMain' source set.
-            project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
-                val kotlin = project.extensions.getByType<KotlinMultiplatformExtension>()
-                kotlin.sourceSets.findByName("commonMain")?.kotlin?.srcDir(outputDir)
-                project.tasks.matching { task ->
-                    if (task.name.startsWith("compileKotlin")) {
-                        task.dependsOn(generateProtoKitTask)
-                        true
-                    } else false
-                }
+            generateProtoKitTask.configure {
+                dependsOn(generateDebugProtoProvider)
             }
         }
     }

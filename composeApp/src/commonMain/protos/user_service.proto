@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package protos;
+
+import "user.proto";
+
+option java_package = "com.fames.protokit.test.services";
+option java_multiple_files = true;
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (User);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}

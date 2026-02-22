@@ -1,123 +1,109 @@
-## 📊 Matriz de Soporte
+![ProtoKit Banner](https://github.com/user-attachments/assets/16223ca8-5221-4993-9e80-1a7a0b8686c5)
 
-### Plataformas
-| Plataforma | Estado |
-| :--- | :--- | :--- |
-| **Android** | ✅ Soportado |
-| **JVM** | ✅ Soportado |
-| **iOS** | ⚠️ No stream |
-| **Web** | 🚧 Planeado |
-
-### ✅ Soportado
-
-- **Llamadas Unarias**: Soporte completo para el flujo de solicitud-respuesta de gRPC.
-- **Tipos de Datos Proto3**: Incluyendo `string`, `int32`, `int64`, `bool`, `float`, `double`, `bytes`, mensajes anidados y campos `repeated`.
-- **Generación de Código en Tiempo de Compilación**: Todo el código se genera durante la compilación, sin sobrecarga en tiempo de ejecución.
-
-### ❌ No Soportado
-
-- **gRPC Streaming**: No se admiten llamadas de streaming (cliente, servidor o bidireccional).
-- **Interceptors**: No hay soporte para interceptores de cliente.
-- **`oneof`, `map`, `any`**: Estos tipos de Protobuf no están implementados.
-- **Reintentos Automáticos y Compresión**: Estas características deben ser manejadas manualmente.
+**ProtoKit** is a lightweight, pragmatic gRPC client for Kotlin Multiplatform, designed with a "code-first" philosophy. It generates clean, human-readable Kotlin code from your `.proto` files, giving you full control without the overhead of complex runtimes.
 
 ---
 
-## 💡 Decisiones de Diseño
+## 📊 Support Matrix
 
-### ¿Por qué no se usa la reflexión?
+### Platforms
+| Platform | Status |
+| :--- | :--- |
+| **Android** | ✅ Supported |
+| **JVM** | ✅ Supported |
+| **iOS** | ✅ Supported |
+| **Web** | 🚧 Planned |
 
-ProtoKit **evita deliberadamente la reflexión** para la serialización de Protobuf. Aunque la reflexión puede ofrecer más flexibilidad, introduce una sobrecarga de rendimiento significativa y aumenta el tamaño de la aplicación, lo cual es crítico en entornos móviles.
+### ✅ Features
+- **Unary Calls**: Full support for the standard gRPC request-response flow.
+- **Proto3 Data Types**: Includes `string`, `int32`, `int64`, `bool`, `float`, `double`, `bytes`, nested messages, `enums`, and `repeated` fields.
+- **Robust Code Generation**: Powered by the official `protoc` compiler (`4.33.5`) and `kotlinpoet` (`2.2.0`) for clean, predictable code.
+- **Cross-File Imports**: Messages from one `.proto` file can be used in another, and the plugin will resolve them correctly.
 
-Al generar código de serialización explícito en tiempo de compilación, ProtoKit garantiza que la codificación y decodificación sea lo más rápida y eficiente posible. Este enfoque da como resultado un SDK de tiempo de ejecución más pequeño y un comportamiento más predecible.
+### ❌ Not Supported
+- **gRPC Streaming**: Client, server, or bidirectional streaming is not yet supported.
+- **Interceptors**: No support for client-side interceptors at this time.
+- **`oneof`, `map`, `any`**: These Protobuf types are not yet implemented.
 
 ---
 
-## 🛠 Instalación
+## 💡 Design Philosophy
 
-### 1. Aplicar el Plugin de Gradle
-En tu archivo `build.gradle.kts`:
+ProtoKit is built on three core principles:
+
+1.  **Explicitness over Magic**: The generated code is straightforward and easy to debug. What you see is what you get.
+2.  **Minimalism**: A small, focused runtime (`protokit-sdk`) keeps your app lightweight.
+3.  **Build-Time Power**: All code generation happens at compile time. This means zero reflection and maximum performance at runtime.
+
+---
+
+## 🛠️ How to Use
+
+### 1. Add the Plugin
+In your module's `build.gradle.kts`, apply the ProtoKit plugin. It will automatically apply and configure the official Google Protobuf plugin for you.
 
 ```kotlin
 plugins {
-    id("com.fames.protokit.plugin") version "0.1.0"
+    // The ProtoKit plugin that generates KMP client code
+    id("com.fames.protokit.plugin") version "0.1.1"
 }
 ```
 
-### 2. Configurar la Dependencia del SDK
-Añade la librería al set de fuentes comunes de tu proyecto Multiplatform:
+### 2. Add the SDK Dependency
+Add the `protokit-sdk` to your common source set:
 
 ```kotlin
 kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("com.fames.protokit:protokit-sdk:0.1.0")
+                implementation("com.fames.protokit:protokit-sdk:0.1.1")
             }
         }
     }
 }
 ```
 
----
-
-## ⚙️ Configuración del Plugin
-
-El plugin de ProtoKit busca por defecto los archivos `.proto` en `src/commonMain/protos`.
-
-> **Nota:** La generación de código se activa automáticamente durante el proceso de `build`. También puedes invocarla manualmente con `./gradlew protokitGenerate`.
+### 3. Place Your `.proto` Files
+Put your `.proto` files in `src/commonMain/protos`. The plugin will automatically find and process them.
 
 ---
 
 ## 🚀 Quick Start
 
 ```kotlin
-// 1. Configurar el cliente base
+// 1. Configure the base client
 val client = ProtoClient(
-    baseUrl = "https://api.tu-servicio.com"
+    baseUrl = "https://api.your-service.com"
 )
 
-// 2. Instanciar el servicio (generado automáticamente)
+// 2. Instantiate the auto-generated service client
 val userService = UserServiceClient(client)
 
-// 3. Realizar la llamada de forma asíncrona
+// 3. Make the call asynchronously
 suspend fun fetchUser() {
-    val response = userService.getUser(GetUserRequest(id = 42))
+    val response = userService.getUser(GetUserRequest(user_id = "42"))
 
     response
         .onSuccess { user ->
-            println("Usuario recibido: ${user.displayName}")
+            println("User received: ${user.display_name}")
         }
         .onFailure { error ->
-            println("Error gRPC: ${error.status} - ${error.message}")
+            println("gRPC Error: ${error.status} - ${error.message}")
         }
 }
 ```
 
-### Mapeo de Respuestas y Metadatos
+---
 
-La clase `Response` de ProtoKit te permite transformar el resultado
-Accede a los metadatos de gRPC (trailers) de forma sencilla.
-Configura un timeout y headers por defecto o en cada llamada.
+## ⚙️ How It Works
 
+ProtoKit uses a robust, build-time code generation process to create clean, type-safe Kotlin clients from your `.proto` files.
 
-```kotlin
-// Transforma el resultado a un modelo de dominio y accede a los trailers
-suspend fun fetchAndMapUser() {
-    val client = ProtoClient(
-        baseUrl = "https://api.tu-servicio.com",
-        defaultTimeoutMillis = 30_000,
-        headers = mapOf("Authorization" to "Bearer $token")
-    )
-    val response = userService.getUser(GetUserRequest(id = 42))
-    val domainUserResponse = response.map { userProto -> userProto.toDomain() }
-    val trailers = domainUserResponse.getTrailers()
-}
+1.  **Automatic Configuration**: The `com.fames.protokit.plugin` automatically applies and configures the official `com.google.protobuf` plugin.
+2.  **Descriptor Generation**: It configures the `protoc` compiler to generate a `descriptor.pb` file, which is a machine-readable model of your proto definitions.
+3.  **Kotlin Code Generation**: Our plugin then reads this descriptor file and uses `kotlinpoet` to generate idiomatic Kotlin data classes and service interfaces.
 
-// Asumiendo que tienes una función de extensión para convertir el proto a tu modelo de dominio
-data class DomainUser(val name: String)
+This entire process is designed to work seamlessly within a Kotlin Multiplatform project, correctly handling the complexities of the Android and KMP Gradle plugins.
 
-fun User.toDomain(): DomainUser {
-    return DomainUser(name = this.displayName)
-}
-```
+For a more detailed explanation, see the [**ARCHITECTURE.md**](ARCHITECTURE.md) document.

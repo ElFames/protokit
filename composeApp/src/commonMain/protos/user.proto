@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package protos;
+
+option java_package = "com.fames.protokit.test.models";
+
+message User {
+  string id = 1;
+  string display_name = 2;
+  Role role = 3;
+}
+
+enum Role {
+  UNKNOWN = 0;
+  ADMIN = 1;
+  USER = 2;
+}

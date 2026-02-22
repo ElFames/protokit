@@ -20,7 +20,7 @@ runner = "1.5.2"
 core = "1.5.0"
 ktor = "3.4.0"
 okhttp = "5.3.2"
-
+protoKitPlugin = "0.1.1"
 
 
 [libraries]
@@ -64,6 +64,7 @@ kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", versio
 
 
 [plugins]
+protoKitPlugin = { id = "com.fames.protokit.plugin", version.ref = "protoKitPlugin" }
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }

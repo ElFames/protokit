@@ -1,111 +1,63 @@
 # Agents Guide
 
-This document describes how agents are expected to work within the ProtoKit
-codebase.
-
-Agents are used to assist development tasks such as code generation,
-refactoring, documentation, and validation. They are **helpers**, not decision
-makers.
+This document describes how agents are expected to work within the ProtoKit codebase. Agents are considered **expert assistants**, not autonomous decision-makers.
 
 ---
 
-## Goals
+## Core Philosophy
 
-Agents in ProtoKit should:
+Agents in ProtoKit must adhere to the project's core principles:
 
-- Reduce repetitive work
-- Enforce architectural consistency
-- Assist with documentation and validation
-- Never introduce hidden behavior or magic
-
-ProtoKit prioritizes explicitness and predictability.
-Agents must follow the same philosophy.
+-   **Explicitness over Magic**: Reduce repetitive work, but never introduce hidden behavior.
+-   **Architectural Consistency**: All changes must align with the established architecture.
+-   **Predictability**: The outcome of any agent action should be easily understandable by a human developer.
 
 ---
 
 ## Allowed Agent Responsibilities
 
-Agents may:
-
-- Generate Kotlin source code following existing patterns
-- Refactor internal APIs without changing public behavior
-- Review code for consistency, safety, and correctness
-- Help evolve documentation (README, examples, comments)
-- Propose improvements clearly separated from implementation
+-   **Generate Code**: Create Kotlin source code that follows the established patterns.
+-   **Refactor**: Improve internal APIs without changing public behavior.
+-   **Document**: Help evolve documentation (`README.md`, code comments, etc.) to keep it aligned with the code.
+-   **Validate**: Review code for consistency, safety, and correctness.
 
 ---
 
 ## Disallowed Agent Responsibilities
 
-Agents must NOT:
-
-- Change public APIs without explicit human approval
-- Introduce new abstractions without justification
-- Hide logic behind implicit behavior
-- Modify build logic or publishing configuration silently
-- Make architectural decisions autonomously
+-   Do not change public APIs without explicit human approval.
+-   Do not introduce new, unrequested abstractions.
+-   Do not modify build logic or publishing configurations silently.
+-   Do not make architectural decisions autonomously.
 
 ---
 
 ## Code Generation Rules
 
-When generating code:
+The primary task for agents in this project is code generation. This process must follow a strict pattern:
 
-- Follow existing style and structure
-- Prefer explicit parameters to global state
-- Avoid reflection and runtime codegen
-- Use `internal` by default unless stated otherwise
-- Do not assume future features exist
+1.  **Source of Truth**: The `.proto` files are the single source of truth.
+2.  **Parsing**: Parsing is handled **exclusively** by the official `protoc` compiler, invoked via the `com.google.protobuf` Gradle plugin. The plugin is configured to generate a `FileDescriptorSet`.
+3.  **Code Creation**: The agent reads the `FileDescriptorSet` and uses it as a model to generate Kotlin code with the `kotlinpoet` library.
 
-Generated code must always be readable and debuggable by humans.
+**Key constraints:**
 
----
-
-## Runtime Constraints
-
-Agents working on runtime code must respect:
-
-- Kotlin Multiplatform compatibility
-- Platform-specific implementations (Android / iOS)
-- Explicit cancellation and timeout handling
-- Correct gRPC framing and trailers semantics
-
-No shortcuts are allowed in transport or protocol logic.
-
----
-
-## Documentation Rules
-
-When updating documentation:
-
-- Be concise and factual
-- Avoid marketing language
-- Clearly state limitations and unsupported features
-- Keep examples minimal and correct
-
-If a feature is not implemented, it must be stated explicitly.
+-   **No Manual Parsing**: Agents must not attempt to parse `.proto` files manually.
+-   **Follow Existing Style**: The generated code must match the style and structure of the code in `ProtoKitCodegen.kt`.
+-   **Readable and Debuggable**: Generated code must always be clear and easy for a human to debug.
 
 ---
 
 ## Workflow
 
-Suggested agent workflow:
-
-1. Understand the current state of the codebase
-2. Identify the scope of the task
-3. Propose changes clearly
-4. Apply changes incrementally
-5. Validate against existing behavior
-
-If unsure, the agent should stop and ask for clarification.
+1.  **Understand**: Analyze the current state of the codebase and the user's request.
+2.  **Clarify**: If the request is ambiguous, ask for clarification before proceeding.
+3.  **Propose**: Outline the steps you will take.
+4.  **Execute**: Apply changes incrementally.
+5.  **Validate**: Ensure the changes are correct and do not break existing functionality.
 
 ---
 
 ## Human-in-the-Loop
 
-All agent output must be reviewed by a human before being merged.
-
-ProtoKit is designed to be understandable without agents.
-Agents are tools, not authors.
-
----
+All agent output must be reviewed by a human. Agents are tools to augment developer productivity, not to replace developer oversight.

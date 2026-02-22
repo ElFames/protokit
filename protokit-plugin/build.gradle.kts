@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.fames.protokit.plugin"
-version = "0.1.0"
+version = "0.1.1"
 
 gradlePlugin {
     website.set("https://github.com/ElFames/protokit")
@@ -30,10 +30,9 @@ repositories {
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
-    compileOnly("com.google.protobuf:protobuf-gradle-plugin:0.9.4")
-    implementation("com.squareup:kotlinpoet:1.17.0")
-    // Align protobuf-java-util version with the one used by protoc in the gradle plugin
-    implementation("com.google.protobuf:protobuf-java-util:3.22.3")
+    implementation("com.google.protobuf:protobuf-gradle-plugin:0.9.6")
+    implementation("com.squareup:kotlinpoet:2.2.0")
+    implementation("com.google.protobuf:protobuf-java-util:4.33.5")
 }
 
 kotlin {
