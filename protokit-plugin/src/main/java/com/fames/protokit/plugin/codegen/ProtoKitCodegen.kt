@@ -92,7 +92,7 @@ class ProtoKitCodegen(
             oneofFieldMap[index]?.forEach { field ->
                 val oneofCaseClassName = oneofClassName.nestedClass(field.name.toPascalCase())
                 val fieldType = mapProtoTypeToKotlin(field)
-                val caseClass = if (isFieldEmpty(field)) { 
+                val caseClass = if (isFieldEmpty(field)) {
                     TypeSpec.objectBuilder(oneofCaseClassName)
                         .addSuperinterface(oneofClassName)
                         .build()
@@ -109,13 +109,13 @@ class ProtoKitCodegen(
             constructor.addParameter(oneofDecl.name, oneofClassName.copy(nullable = true))
             builder.addProperty(PropertySpec.builder(oneofDecl.name, oneofClassName.copy(nullable = true)).initializer(oneofDecl.name).build())
         }
-        
+
         // Add regular fields
         descriptor.fieldList.filter { !it.hasOneofIndex() }.forEach {
             constructor.addParameter(it.name, mapProtoTypeToKotlin(it))
             builder.addProperty(PropertySpec.builder(it.name, mapProtoTypeToKotlin(it)).initializer(it.name).build())
         }
-        
+
         return builder.primaryConstructor(constructor.build())
             .addFunction(generateEncodeMethod(descriptor, pkg, oneofDeclarations, oneofFieldMap))
             .addType(generateDecodeCompanion(descriptor, pkg, oneofDeclarations, oneofFieldMap))
@@ -155,7 +155,7 @@ class ProtoKitCodegen(
     ): FunSpec {
         val body = CodeBlock.builder()
         body.addStatement("val writer = %T()", PROTO_WRITER_CLASS_NAME)
-        
+
         // oneof fields
         oneofDecls.forEachIndexed { index, oneofDecl ->
             body.addStatement("when (val oneofValue = %N) {", oneofDecl.name)
@@ -180,7 +180,7 @@ class ProtoKitCodegen(
         descriptor.fieldList.filter { !it.hasOneofIndex() }.forEach { field ->
             writeField(field.name, field, body, field.label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED)
         }
-        
+
         body.addStatement("return writer.toByteArray()")
         return FunSpec.builder("encode").returns(ByteArray::class).addCode(body.build()).build()
     }
@@ -231,7 +231,7 @@ class ProtoKitCodegen(
             body.addStatement("}")
         }
     }
-    
+
     private fun generateDecodeCompanion(
         descriptor: DescriptorProtos.DescriptorProto,
         pkg: String,
@@ -240,7 +240,7 @@ class ProtoKitCodegen(
     ): TypeSpec {
         val className = resolveType(descriptor.name, pkg)
         val body = CodeBlock.builder()
-        
+
         // Init vars
         descriptor.fieldList.filter { !it.hasOneofIndex() }.forEach { body.addStatement("var %N: %T = %L", it.name, mapProtoTypeToKotlin(it, true), protoDefault(it)) }
         oneofDecls.forEach { body.addStatement("var %N: %T? = null", it.name, className.nestedClass(it.name.toPascalCase())) }
@@ -290,13 +290,13 @@ class ProtoKitCodegen(
             .addFunction(FunSpec.builder("decode").addParameter("reader", PROTO_READER_CLASS_NAME).returns(className).addCode(body.build()).build())
             .build()
     }
-    
+
     private fun isMap(field: DescriptorProtos.FieldDescriptorProto): Boolean {
         return field.label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED &&
                field.type == DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE &&
                messageDescriptorMap[field.typeName]?.options?.mapEntry == true
     }
-    
+
     private fun isFieldEmpty(field: DescriptorProtos.FieldDescriptorProto): Boolean {
         return field.type == DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE && messageDescriptorMap[field.typeName]?.fieldList?.isEmpty() == true
     }

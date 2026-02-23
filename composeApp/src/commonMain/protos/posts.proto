@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "google/protobuf/any.proto";
 import "common.proto";
 import "media.proto";
 
@@ -12,7 +11,6 @@ message Post {
   UUID author_id = 2;
   Timestamp created_at = 3;
   Status status = 4;
-  repeated google.protobuf.Any attributes = 7;
 }
 
 enum Status {

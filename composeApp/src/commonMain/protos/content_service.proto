@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "common.proto";
 import "posts.proto";
-import "kitchen_sink.proto";
 
 option java_package = "com.fames.protokit.test";
 option java_multiple_files = true;
