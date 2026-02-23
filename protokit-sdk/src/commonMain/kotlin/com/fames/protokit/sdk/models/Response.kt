@@ -27,7 +27,13 @@ inline fun <T> Response<T>.onFailure(action: (Response.Failure) -> Unit): Respon
     return this
 }
 
-fun <T> Response<T>.getValueOrNull(): T? =
+fun <T> Response<T>.isSuccess(): Boolean =
+    this is Response.Success
+
+fun <T> Response<T>.isFailure(): Boolean =
+    this is Response.Failure
+
+fun <T> Response<T>.getModelOrNull(): T? =
     (this as? Response.Success)?.value
 
 fun <T> Response<T>.getTrailers(): GrpcTrailers {
@@ -37,7 +43,7 @@ fun <T> Response<T>.getTrailers(): GrpcTrailers {
     }
 }
 
-fun <T> Response<T>.getErrorOrNull(): Response.Failure? =
+fun <T> Response<T>.getError(): Response.Failure? =
     this as? Response.Failure
 
 inline fun <T, R> Response<T>.map(transform: (T) -> R): Response<R> =

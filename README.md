@@ -91,9 +91,7 @@ val userService = UserServiceClient(client)
 
 // 3. Make the call asynchronously
 suspend fun fetchUser() {
-    val response = userService.getUser(GetUserRequest(user_id = "42"))
-
-    response
+    userService.getUser(GetUserRequest(user_id = "75"))
         .onSuccess { user ->
             println("User received: ${user.display_name}")
         }
@@ -101,6 +99,17 @@ suspend fun fetchUser() {
             println("gRPC Error: ${error.status} - ${error.message}")
         }
 }
+
+// 4. Explore others methods
+val domainResponseModel = response.map { it.toDomain() }
+val trailers = response.getTrailers() // status, message, etc
+val modelOrNull = response.getModelOrNull()
+val error = response.getError()
+val isSuccess = response.isSuccess()
+val isFailure = response.isFailure()
+
+
+
 ```
 
 ---
@@ -115,4 +124,4 @@ ProtoKit uses a robust, build-time code generation process to create clean, type
 
 This entire process is designed to work seamlessly within a Kotlin Multiplatform project, correctly handling the complexities of the Android and KMP Gradle plugins.
 
-For a more detailed explanation, see the [**ARCHITECTURE.md**](ARCHITECTURE.md) document.
+For a more detailed explanation, see the [**ARCHITECTURE.md**](Architecture.md) document.
