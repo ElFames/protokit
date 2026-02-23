@@ -1,10 +1,8 @@
 syntax = "proto3";
 
-package models;
+import "common.proto";
 
-import "models/common.proto";
-
-option java_package = "com.fames.protokit.test.models";
+option java_package = "com.fames.protokit.test";
 option java_multiple_files = true;
 
 // This message includes every single scalar type for stress-testing the generator.

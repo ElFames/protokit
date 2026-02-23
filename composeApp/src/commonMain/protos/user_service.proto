@@ -1,14 +1,12 @@
 syntax = "proto3";
 
-package services;
-
-import "models/user.proto";
+import "user.proto";
 
 option java_package = "com.fames.protokit.test.services";
 option java_multiple_files = true;
 
 service UserService {
-  rpc GetUser (GetUserRequest) returns (models.User);
+  rpc GetUser (GetUserRequest) returns (User);
 }
 
 message GetUserRequest {

@@ -56,7 +56,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("com.fames.protokit:protokit-sdk:0.1.1")
+                implementation("com.fames.protokit:protokit-sdk:0.1.0")
             }
         }
     }

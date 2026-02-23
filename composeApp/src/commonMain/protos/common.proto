@@ -1,11 +1,8 @@
 syntax = "proto3";
 
-package models;
-
-option java_package = "com.fames.protokit.test.models";
+option java_package = "com.fames.protokit.test";
 option java_multiple_files = true;
 
-// A universally unique identifier (UUID).
 message UUID {
   string value = 1;
 }

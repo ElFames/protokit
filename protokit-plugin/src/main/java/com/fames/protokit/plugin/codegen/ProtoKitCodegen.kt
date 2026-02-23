@@ -33,13 +33,14 @@ class ProtoKitCodegen(
     private fun buildTypeRegistry() {
         descriptorSet.fileList.forEach { file ->
             val javaPackage = file.options.javaPackage.takeIf { it.isNotBlank() } ?: file.`package`
+            val prefix = if (file.`package`.isNotEmpty()) ".${file.`package`}." else "."
             file.messageTypeList.forEach {
-                val fqName = ".${file.`package`}.${it.name}"
+                val fqName = "${prefix}${it.name}"
                 typeRegistry[fqName] = ClassName(javaPackage, it.name)
                 messageDescriptorMap[fqName] = it
             }
-            file.enumTypeList.forEach { typeRegistry[".${file.`package`}.${it.name}"] = ClassName(javaPackage, it.name) }
-            file.serviceList.forEach { typeRegistry[".${file.`package`}.${it.name}"] = ClassName(javaPackage, it.name) }
+            file.enumTypeList.forEach { typeRegistry["${prefix}${it.name}"] = ClassName(javaPackage, it.name) }
+            file.serviceList.forEach { typeRegistry["${prefix}${it.name}"] = ClassName(javaPackage, it.name) }
         }
         typeRegistry[".google.protobuf.Any"] = PROTO_ANY_CLASS_NAME
     }
@@ -138,7 +139,7 @@ class ProtoKitCodegen(
         descriptor.methodList.forEach { method ->
             val req = resolveType(method.inputType)
             val res = resolveType(method.outputType)
-            val urlPath = "/$pkg.$serviceName/${method.name}"
+            val urlPath = if (pkg.isNotEmpty()) "/$pkg.$serviceName/${method.name}" else "/$serviceName/${method.name}"
             interfaceBuilder.addFunction(FunSpec.builder(method.name.lowercaseFirst()).addModifiers(KModifier.ABSTRACT, KModifier.SUSPEND).addParameter("request", req).returns(RESPONSE_CLASS_NAME.parameterizedBy(res)).build())
             clientImpl.addFunction(FunSpec.builder(method.name.lowercaseFirst()).addModifiers(KModifier.OVERRIDE, KModifier.SUSPEND).addParameter("request", req).returns(RESPONSE_CLASS_NAME.parameterizedBy(res))
                 .addCode("return client.unary(%S, request, { it.encode() }, { %T.decode(it) })", urlPath, res).build())
@@ -212,7 +213,12 @@ class ProtoKitCodegen(
                 body.addStatement("writer.writeEnum(%L, %N.ordinal)", field.number, finalValueIdentifier)
             }
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE -> {
-                body.addStatement("writer.writeObject(%L) { %N.encode() }", field.number, finalValueIdentifier)
+                val typeName = mapProtoTypeToKotlin(field)
+                if (typeName.isNullable) {
+                    body.addStatement("%N?.let { writer.writeObject(%L) { it.encode() } }", finalValueIdentifier, field.number)
+                } else {
+                    body.addStatement("writer.writeObject(%L) { %N.encode() }", field.number, finalValueIdentifier)
+                }
             }
             else -> {
                 val methodSuffix = getProtoMethodSuffix(field.type)
@@ -302,16 +308,16 @@ class ProtoKitCodegen(
             val valueType = mapProtoTypeToKotlin(mapEntryDescriptor.fieldList[1])
             return (if (isMutable) MUTABLE_MAP_CLASS_NAME else MAP).parameterizedBy(keyType, valueType)
         }
-        
+
         if (isFieldEmpty(field)) return Unit::class.asTypeName()
 
         val type = if (field.type == DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE || field.type == DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM) resolveType(field.typeName) else getPrimitiveTypeName(field.type)
-        
-        val finalType = if (field.typeName == ".google.protobuf.Any") type.copy(nullable = true) else type
 
-        return if (field.label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
-            (if (isMutable) MUTABLE_LIST_CLASS_NAME else LIST_CLASS_NAME).parameterizedBy(finalType)
-        } else finalType
+        if (field.label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
+            return (if (isMutable) MUTABLE_LIST_CLASS_NAME else LIST_CLASS_NAME).parameterizedBy(type)
+        }
+
+        return if (field.typeName == ".google.protobuf.Any") type.copy(nullable = true) else type
     }
 
     private fun readFieldCode(field: DescriptorProtos.FieldDescriptorProto): CodeBlock {
@@ -328,7 +334,7 @@ class ProtoKitCodegen(
                 .indent()
                 .addStatement("while(true) {")
                 .indent()
-                .addStatement("val (tag, wire) = reader.getTag() ?: break")
+                .addStatement("val (tag, wire) = reader.readTag() ?: break")
                 .addStatement("when (tag) {")
                 .indent()
                 .addStatement("1 -> key = %L", readFieldCode(keyField))
@@ -346,8 +352,7 @@ class ProtoKitCodegen(
         return when (field.type) {
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE -> {
                 val type = resolveType(field.typeName)
-                if (type == PROTO_ANY_CLASS_NAME) CodeBlock.of("%T.decode(reader)", type)
-                else CodeBlock.of("%T.decode(reader)", type)
+                CodeBlock.of("%T.decode(reader)", type)
             }
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM -> {
                 val enumType = resolveType(field.typeName)
@@ -386,7 +391,13 @@ class ProtoKitCodegen(
     }
 
     private fun resolveType(protoName: String, localPackage: String? = null): ClassName {
-        val fqName = if (protoName.startsWith(".")) protoName else ".${localPackage}.$protoName"
+        val fqName = if (protoName.startsWith(".")) {
+            protoName
+        } else if (localPackage.isNullOrEmpty()) {
+            ".$protoName"
+        } else {
+            ".$localPackage.$protoName"
+        }
         return typeRegistry[fqName] ?: throw IllegalStateException("Type '$fqName' not found. Registered: ${typeRegistry.keys}")
     }
 
@@ -405,7 +416,7 @@ class ProtoKitCodegen(
 
     companion object {
         private val PROTO_CLIENT_CLASS_NAME = ClassName("com.fames.protokit.sdk", "ProtoClient")
-        private val PROTO_ANY_CLASS_NAME = ClassName("com.fames.protokit.sdk.google.protobuf", "ProtoAny")
+        private val PROTO_ANY_CLASS_NAME = ClassName("com.fames.protokit.sdk.models", "ProtoAny")
         private val RESPONSE_CLASS_NAME = ClassName("com.fames.protokit.sdk.models", "Response")
         private val PROTO_WRITER_CLASS_NAME = ClassName("com.fames.protokit.core.io", "ProtoWriter")
         private val PROTO_READER_CLASS_NAME = ClassName("com.fames.protokit.core.io", "ProtoReader")
