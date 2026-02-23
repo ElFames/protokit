@@ -375,7 +375,8 @@ class ProtoKitCodegen(
         if (field.type == DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE) return "${resolveType(field.typeName)}.decode(ByteArray(0))"
         if (field.type == DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM) return "${resolveType(field.typeName)}.values()[0]"
         return when (getPrimitiveTypeName(field.type)) {
-            Double::class.asTypeName(), Float::class.asTypeName() -> "0.0f"
+            Double::class.asTypeName() -> "0.0"
+            Float::class.asTypeName() -> "0.0f"
             Long::class.asTypeName() -> "0L"
             Boolean::class.asTypeName() -> "false"
             String::class.asTypeName() -> "\"\""

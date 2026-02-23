@@ -27,6 +27,8 @@ class ProtoKitPlugin : Plugin<Project> {
             artifact = "com.google.protobuf:protoc:4.33.5"
         }
 
+        project.dependencies.add("protobuf", "com.google.protobuf:protobuf-java:4.33.5")
+
         // 2. Register our custom code generation task.
         val generateProtoKitTask = project.tasks.register("generateProtoKitCode", ProtoKitCodegenTask::class.java) {
             descriptorSet.set(descriptorSetFile)

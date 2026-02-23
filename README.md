@@ -66,6 +66,16 @@ kotlin {
 ### 3. Place Your `.proto` Files
 Put your `.proto` files in `src/commonMain/protos`. The plugin will automatically find and process them.
 
+### 4. Using Well-Known Types (like `Any`)
+If your `.proto` files use Well-Known Types like `google.protobuf.Any`, you need to add the `protobuf-java-util` dependency to your app module. This provides the necessary runtime utilities for packing and unpacking these types.
+
+```kotlin
+dependencies {
+    implementation("com.google.protobuf:protobuf-java-util:4.33.5")
+}
+```
+
+
 ---
 
 ## 🚀 Quick Start

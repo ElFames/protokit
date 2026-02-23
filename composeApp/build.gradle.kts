@@ -84,6 +84,7 @@ android {
 
 dependencies {
     debugImplementation(libs.compose.uiTooling)
+    implementation("com.google.protobuf:protobuf-java-util:4.33.5")
 }
 
 compose.desktop {

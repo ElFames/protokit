@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package services;
+
+import "models/common.proto";
+import "models/posts.proto";
+import "models/kitchen_sink.proto";
+
+option java_package = "com.fames.protokit.test.services";
+option java_multiple_files = true;
+
+// Service for managing content posts.
+service ContentService {
+  // Creates a new post.
+  rpc CreatePost(CreatePostRequest) returns (models.Post);
+
+  // Retrieves a single post.
+  rpc GetPost(GetPostRequest) returns (models.Post);
+
+  // Lists all posts.
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+
+  // A method for stress-testing the generator with all possible types.
+  rpc TestKitchenSink(models.KitchenSink) returns (models.KitchenSink);
+}
+
+message CreatePostRequest {
+  models.Post post = 1;
+}
+
+message GetPostRequest {
+  models.UUID post_id = 1;
+}
+
+message ListPostsRequest {
+  // Optional: filter by author.
+  models.UUID author_id = 1;
+  uint32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListPostsResponse {
+  repeated models.Post posts = 1;
+  string next_page_token = 2;
+}
