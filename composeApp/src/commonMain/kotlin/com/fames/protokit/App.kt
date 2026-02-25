@@ -41,12 +41,10 @@ fun App() {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            service.openSession(testRequest)
-                .onSuccess { deviceSession ->
-                    strResponse = deviceSession.toString()
-                }.onFailure { error ->
-                    strResponse = error.toString()
-                }
+
+            val response = service.openSession(testRequest)
+
+            strResponse = response.toString()
             println(strResponse)
             state = UiState.Idle
         }
