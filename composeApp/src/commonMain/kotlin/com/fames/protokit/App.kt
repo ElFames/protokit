@@ -18,11 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.fames.protokit.sdk.ProtoClient
-import com.fames.protokit.sdk.models.getTrailers
+import com.fames.protokit.sdk.models.Platform
 import com.fames.protokit.sdk.models.onFailure
 import com.fames.protokit.sdk.models.onSuccess
-import com.fames.protokit.test.GetUserRequest
-import com.fames.protokit.test.UserServiceClient
+import com.fames.protokit.sdk.models.platform
+import es.smarting.motorcloud.apis.baseremoteapi.grpc.services.DeviceContextServiceClient
+import es.smarting.motorcloud.apis.baseremoteapi.grpc.services.DeviceInfoProto
+import es.smarting.motorcloud.apis.baseremoteapi.grpc.services.DeviceRequest
+import es.smarting.motorcloud.apis.baseremoteapi.grpc.services.DeviceSessionInfoProto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
@@ -36,17 +39,40 @@ fun App() {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            val client = ProtoClient("https://grb288f515738c.free.beeceptor.com")
-            UserServiceClient(client).getUser(GetUserRequest(user_id = "exampleId"))
-                .onSuccess { user ->
-                    strResponse = "Repuesta Éxitosa.\nUsuario: ${user.display_name}\nRol: ${user.role.name.lowercase().replaceFirstChar { it.titlecase() }}"
+
+            val client = ProtoClient("https://motorcloud.atm.smarting.es:32132")
+            val service = DeviceContextServiceClient(client)
+
+            val request = DeviceRequest(DeviceInfoProto(
+                deviceId = "gdgd".encodeToByteArray(),
+                appInstanceId = "gdgd".encodeToByteArray(),
+                operatingSystem = if (platform() == Platform.ANDROID) {
+                    DeviceInfoProto.OperatingSystem.Android
+                } else DeviceInfoProto.OperatingSystem.IOS,
+                osVersion = "gdgd",
+                deviceMaker = "gdgd",
+                deviceModel = "gdgd",
+                tamperStatus = "gdgd",
+                deviceLocale = "gdgd",
+                appLocale = "gdgd",
+                fcmToken = "gdgd",
+                sessionInfo = DeviceSessionInfoProto(
+                    sessionTag = "mnm",
+                    sessionId = "mnm",
+                    systemVersionAccess = 1,
+                    expiration = 55000L,
+                    sessionRefresh = "mnm"
+                ),
+                versionCode = 3,
+                appVersionName = "gdgd",
+                apnsToken = "gdgd".encodeToByteArray()
+            ))
+
+            service.openSession(request)
+                .onSuccess { deviceSession ->
+                    strResponse = deviceSession.toString()
                 }.onFailure { error ->
-                    strResponse = """
-                        Error en la respuesta.
-                        Status: ${error.status}
-                        Mesage: ${error.message}
-                        Trailers: ${error.trailers}
-                    """.trimIndent()
+                    strResponse = error.toString()
                 }
             println(strResponse)
             state = UiState.Idle

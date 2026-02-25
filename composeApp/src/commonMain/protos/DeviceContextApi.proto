@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.baseremoteapi.grpc.services";
+
+import "GrpcSerializedData.proto";
+
+service DeviceContextService {
+	rpc updateDeviceInfo(DeviceRequest) returns (DeviceInfoResponse);
+
+	rpc openSession(DeviceRequest) returns (DeviceSessionResponse);
+
+	rpc deviceVerification(DeviceVerificationRequest) returns (DeviceVerificationResponse);
+}
+
+message DeviceRequest {
+	DeviceInfoProto deviceInfo = 1;
+}
+
+message DeviceSessionInfoProto {
+	string sessionTag = 1;
+	string sessionId = 2;
+	int32 systemVersionAccess = 3;
+	int64 expiration = 4;
+	string sessionRefresh = 5;
+}
+
+message DeviceInfoProto {
+	bytes deviceId = 1;
+	bytes appInstanceId = 2;
+	enum OperatingSystem {
+		Undefined = 0;
+		Android = 1;
+		IOS = 2;
+		Fuchsia = 3;
+	}
+	OperatingSystem operatingSystem = 3;
+	string osVersion = 4;
+	string deviceMaker = 5;
+	string deviceModel = 6;
+	string tamperStatus = 7;
+	string deviceLocale = 8;
+	string appLocale = 9;
+	string fcmToken = 10;
+	DeviceSessionInfoProto sessionInfo = 11;
+	int32 versionCode = 12;
+	string appVersionName = 13;
+	bytes apnsToken = 14;
+}
+
+message DeviceInfoResponse {
+	enum DeviceInfoStatus {
+		OK = 0;
+		RESEND_ALL = 1;
+	}
+	DeviceInfoStatus deviceInfoStatus = 1;
+}
+
+
+message DeviceSessionResponse {
+	enum DeviceSessionResponseCode {
+		OK = 0;
+		NOT_ALLOWED_APP_VERSION = 1;
+		VERSION_DEPRECATED = 2;
+	}
+	DeviceSessionResponseCode responseCode = 1;
+	DeviceSessionInfoProto sessionInfo = 2;
+}
+
+message DeviceVerificationResponse {
+	int32 resultCode = 1;
+}
+
+message DeviceVerificationRequest {
+	DeviceInfoProto deviceInfo = 1;
+	repeated  DeviceVerification deviceVerificationList = 2;
+}
+
+message DeviceVerification {
+	int32 verificationType = 1;
+	GrpcSerializedData verificationData = 2;
+}
+
+enum VerificationType {
+	UNDEFINED_VERIFICATION_TYPE = 0;
+	SAFETY_NET = 1;
+	GOOGLE_PLAY_INTEGRITY = 2;
+}
+
+message GooglePlayIntegrityResult {
+	int32 resultCode = 1; //GooglePlayIntegrityResultCode
+	string tokenResponse = 2; // si no pasa, attestationResult  = null
+	string appId = 3;
+}
+
+message SafetyNetAttestationResult {
+	int32 resultCode = 1; //SafetyNetResultCode
+	string attestationResult = 2; // si no pasa, attestationResult  = null
+}
+
+enum GooglePlayIntegrityResultCode {
+	GPI_UNKNOWN = 0;
+	GPI_OK = 1;
+	GPI_GMS_NOT_AVAILABLE = 2; //NO_PASA_XK_NO_TIENES_GOOGLE_SERVICES. GMS
+}
+
+enum SafetyNetResultCode {
+	UNKNOWN = 0;
+	OK = 1;
+	GMS_NOT_AVAILABLE = 2; //NO_PASA_XK_NO_TIENES_GOOGLE_SERVICES. GMS
+}

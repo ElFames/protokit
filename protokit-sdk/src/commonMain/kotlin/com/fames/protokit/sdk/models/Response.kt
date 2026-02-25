@@ -1,6 +1,5 @@
 package com.fames.protokit.sdk.models
 
-import com.fames.protokit.sdk.models.GrpcTrailers
 
 sealed class Response<out T> {
 
@@ -10,20 +9,24 @@ sealed class Response<out T> {
     ) : Response<T>()
 
     data class Failure(
-        val status: GrpcStatus,
-        val message: String?,
-        val trailers: GrpcTrailers
+        val error: CallError
     ) : Response<Nothing>()
 
 }
+
+data class CallError(
+    val status: GrpcStatus,
+    val message: String?,
+    val trailers: GrpcTrailers
+)
 
 inline fun <T> Response<T>.onSuccess(action: (T) -> Unit): Response<T> {
     if (this is Response.Success) action(value)
     return this
 }
 
-inline fun <T> Response<T>.onFailure(action: (Response.Failure) -> Unit): Response<T> {
-    if (this is Response.Failure) action(this)
+inline fun <T> Response<T>.onFailure(action: (CallError) -> Unit): Response<T> {
+    if (this is Response.Failure) action(this.error)
     return this
 }
 
@@ -39,12 +42,12 @@ fun <T> Response<T>.getModelOrNull(): T? =
 fun <T> Response<T>.getTrailers(): GrpcTrailers {
     return when (this) {
         is Response.Success -> trailers
-        is Response.Failure -> trailers
+        is Response.Failure -> error.trailers
     }
 }
 
-fun <T> Response<T>.getError(): Response.Failure? =
-    this as? Response.Failure
+fun <T> Response<T>.getError(): CallError? =
+    (this as? Response.Failure)?.error
 
 inline fun <T, R> Response<T>.map(transform: (T) -> R): Response<R> =
     when (this) {

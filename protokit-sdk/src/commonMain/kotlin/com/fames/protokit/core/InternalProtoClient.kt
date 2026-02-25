@@ -4,6 +4,7 @@ import com.fames.protokit.sdk.models.GrpcTrailers
 import com.fames.protokit.sdk.models.GrpcStatus
 import com.fames.protokit.sdk.models.Response
 import com.fames.protokit.core.transport.GrpcTransport
+import com.fames.protokit.sdk.models.CallError
 import kotlinx.coroutines.flow.Flow
 
 internal class InternalProtoClient(
@@ -32,9 +33,11 @@ internal class InternalProtoClient(
 
             if (response.trailers.status != GrpcStatus.OK) {
                 Response.Failure(
-                    status = response.trailers.status,
-                    message = response.trailers.message,
-                    trailers = response.trailers
+                    CallError(
+                        status = response.trailers.status,
+                        message = response.trailers.message,
+                        trailers = response.trailers
+                    )
                 )
             } else {
                 Response.Success(
@@ -44,12 +47,14 @@ internal class InternalProtoClient(
             }
         } catch (t: Throwable) {
             Response.Failure(
-                status = GrpcStatus.UNKNOWN,
-                message = t.message,
-                trailers = GrpcTrailers(
+                CallError(
                     status = GrpcStatus.UNKNOWN,
                     message = t.message,
-                    raw = emptyMap()
+                    trailers = GrpcTrailers(
+                        status = GrpcStatus.UNKNOWN,
+                        message = t.message,
+                        raw = emptyMap()
+                    )
                 )
             )
         }

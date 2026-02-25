@@ -104,6 +104,7 @@ kotlin {
                 implementation(libs.kotlin.stdlib)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.ktor.client.core)
+                implementation(libs.kotlinx.io.core)
             }
         }
 
