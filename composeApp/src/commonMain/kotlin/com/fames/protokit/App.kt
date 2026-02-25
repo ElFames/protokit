@@ -33,42 +33,15 @@ import kotlinx.coroutines.withContext
 @Composable
 @Preview
 fun App() {
+    val client = ProtoClient("https://motorcloud.atm.smarting.es:32132")
+    val service = DeviceContextServiceClient(client)
 
     var state by remember { mutableStateOf<UiState>(UiState.Loading) }
     var strResponse by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-
-            val client = ProtoClient("https://motorcloud.atm.smarting.es:32132")
-            val service = DeviceContextServiceClient(client)
-
-            val request = DeviceRequest(DeviceInfoProto(
-                deviceId = "gdgd".encodeToByteArray(),
-                appInstanceId = "gdgd".encodeToByteArray(),
-                operatingSystem = if (platform() == Platform.ANDROID) {
-                    DeviceInfoProto.OperatingSystem.Android
-                } else DeviceInfoProto.OperatingSystem.IOS,
-                osVersion = "gdgd",
-                deviceMaker = "gdgd",
-                deviceModel = "gdgd",
-                tamperStatus = "gdgd",
-                deviceLocale = "gdgd",
-                appLocale = "gdgd",
-                fcmToken = "gdgd",
-                sessionInfo = DeviceSessionInfoProto(
-                    sessionTag = "mnm",
-                    sessionId = "mnm",
-                    systemVersionAccess = 1,
-                    expiration = 55000L,
-                    sessionRefresh = "mnm"
-                ),
-                versionCode = 3,
-                appVersionName = "gdgd",
-                apnsToken = "gdgd".encodeToByteArray()
-            ))
-
-            service.openSession(request)
+            service.openSession(testRequest)
                 .onSuccess { deviceSession ->
                     strResponse = deviceSession.toString()
                 }.onFailure { error ->
@@ -101,3 +74,28 @@ sealed class UiState {
     object Loading : UiState()
     data object Idle : UiState()
 }
+
+val testRequest = DeviceRequest(DeviceInfoProto(
+    deviceId = "gdgd".encodeToByteArray(),
+    appInstanceId = "gdgd".encodeToByteArray(),
+    operatingSystem = if (platform() == Platform.ANDROID) {
+        DeviceInfoProto.OperatingSystem.Android
+    } else DeviceInfoProto.OperatingSystem.IOS,
+    osVersion = "gdgd",
+    deviceMaker = "gdgd",
+    deviceModel = "gdgd",
+    tamperStatus = "gdgd",
+    deviceLocale = "gdgd",
+    appLocale = "gdgd",
+    fcmToken = "gdgd",
+    sessionInfo = DeviceSessionInfoProto(
+        sessionTag = "mnm",
+        sessionId = "mnm",
+        systemVersionAccess = 1,
+        expiration = 55000L,
+        sessionRefresh = "mnm"
+    ),
+    versionCode = 3,
+    appVersionName = "gdgd",
+    apnsToken = "gdgd".encodeToByteArray()
+))

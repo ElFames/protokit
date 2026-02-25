@@ -4,34 +4,23 @@ import com.fames.protokit.core.io.Framer
 import com.fames.protokit.core.transport.GrpcTransport
 import com.fames.protokit.core.transport.StreamCall
 import com.fames.protokit.core.transport.TransportResponse
+import com.fames.protokit.sdk.models.GrpcStatus
+import com.fames.protokit.sdk.models.GrpcTrailers
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.engine.darwin.Darwin
-import kotlinx.cinterop.ExperimentalForeignApi
-import kotlinx.coroutines.suspendCancellableCoroutine
-import platform.CFNetwork.kCFHTTPVersion2_0
-import platform.Foundation.HTTPBody
-import platform.Foundation.HTTPMethod
-import platform.Foundation.NSMutableURLRequest
-import platform.Foundation.NSURL
-import platform.Foundation.NSURLSession
-import platform.Foundation.NSURLSessionConfiguration
-import platform.Foundation.dataTaskWithRequest
-import platform.Foundation.setValue
-import platform.objc.protocol_addProtocol
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 
 internal class IosGrpcTransport(
     private val baseUrl: String
 ) : GrpcTransport {
-    
-    @OptIn(ExperimentalForeignApi::class)
+
     private val client = HttpClient(Darwin) {
-        engine {
-            configureSession {
-                protocol_addProtocol(kCFHTTPVersion2_0)
-            }
-        }
+        install(HttpTimeout)
     }
 
     override suspend fun unaryCall(
@@ -39,35 +28,35 @@ internal class IosGrpcTransport(
         requestBytes: ByteArray,
         timeoutMillis: Long?,
         headers: Map<String, String>
-    ): TransportResponse = suspendCancellableCoroutine { cont ->
+    ): TransportResponse {
+        val framedRequest = Framer.frame(requestBytes)
 
-        val framed = Framer.frame(requestBytes)
-        val url = NSURL(string = "$baseUrl$method")
-        val timeoutInterval = (timeoutMillis ?: 15_000) / 1000.0
-
-        val request = NSMutableURLRequest(url)
-        request.HTTPMethod = "POST"
-        request.setValue("application/grpc", forHTTPHeaderField = "Content-Type")
-        request.setValue("trailers", forHTTPHeaderField = "TE")
-        request.setTimeoutInterval(timeoutInterval)
-        request.HTTPBody = framed.toNSData()
-        headers.forEach { (k, v) -> request.setValue(v, forHTTPHeaderField = k) }
-
-
-        val task = urlSession.dataTaskWithRequest(request) { data, response, error ->
-            when {
-                error != null -> cont.resumeWithException(Throwable(error.localizedDescription))
-                data == null -> cont.resumeWithException(IllegalStateException("Empty response"))
-                else -> {
-                    val body = Framer.unframe(data.toByteArray())
-                    val trailers = response.toGrpcTrailers()
-                    cont.resume(TransportResponse(body, trailers))
-                }
+        val httpResponse = client.post("$baseUrl$method") {
+            headers {
+                append("Content-Type", "application/grpc")
+                append("TE", "trailers")
+                headers.forEach { (k, v) -> append(k, v) }
             }
+            timeout {
+                requestTimeoutMillis = timeoutMillis ?: 15_000
+            }
+            setBody(framedRequest)
         }
 
-        cont.invokeOnCancellation { task.cancel() }
-        task.resume()
+        val responseData = httpResponse.body<ByteArray>()
+        val body = Framer.unframe(responseData)
+
+        val rawTrailers = httpResponse.headers.entries()
+            .filter { it.key.lowercase().startsWith("grpc-") }
+            .associate { it.key to it.value.joinToString(",") }
+
+        val grpcStatusCode = rawTrailers["grpc-status"]?.toIntOrNull() ?: GrpcStatus.UNKNOWN.code
+        val grpcStatus = GrpcStatus.fromCode(grpcStatusCode)
+        val grpcMessage = rawTrailers["grpc-message"]
+
+        val trailers = GrpcTrailers(grpcStatus, grpcMessage, rawTrailers)
+
+        return TransportResponse(body, trailers)
     }
 
     override fun serverStream(
