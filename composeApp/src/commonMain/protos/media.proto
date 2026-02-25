@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-option java_package = "com.fames.protokit.test";
-
-message Image {
-  string url = 1;
-  uint32 width = 2;
-  uint32 height = 3;
-}

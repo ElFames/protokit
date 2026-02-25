@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option java_package = "com.fames.protokit.test";
+option java_multiple_files = true;
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (User);
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message User {
+  string id = 1;
+  string display_name = 2;
+  enum Role {
+    UNKNOWN = 0;
+    ADMIN = 1;
+    USER = 2;
+  }
+  Role role = 3;
+  Timestamp created_at = 4;
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanos = 2;
+}
