@@ -8,12 +8,11 @@ option java_multiple_files = true;
 message User {
   string id = 1;
   string display_name = 2;
+  enum Role {
+    UNKNOWN = 0;
+    ADMIN = 1;
+    USER = 2;
+  }
   Role role = 3;
   Timestamp created_at = 4;
-}
-
-enum Role {
-  UNKNOWN = 0;
-  ADMIN = 1;
-  USER = 2;
 }

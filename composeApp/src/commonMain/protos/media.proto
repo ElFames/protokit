@@ -2,7 +2,6 @@ syntax = "proto3";
 
 option java_package = "com.fames.protokit.test";
 
-// Represents an image with its properties.
 message Image {
   string url = 1;
   uint32 width = 2;

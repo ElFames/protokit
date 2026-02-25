@@ -10,7 +10,6 @@ service ContentService {
   rpc CreatePost(CreatePostRequest) returns (Post);
   rpc GetPost(GetPostRequest) returns (Post);
   rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
-  rpc TestKitchenSink(KitchenSink) returns (KitchenSink);
 }
 
 message CreatePostRequest {

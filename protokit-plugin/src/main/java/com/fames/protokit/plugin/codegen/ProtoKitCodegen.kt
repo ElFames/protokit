@@ -34,10 +34,15 @@ class ProtoKitCodegen(
         descriptorSet.fileList.forEach { file ->
             val javaPackage = file.options.javaPackage.takeIf { it.isNotBlank() } ?: file.`package`
             val prefix = if (file.`package`.isNotEmpty()) ".${file.`package`}." else "."
-            file.messageTypeList.forEach {
-                val fqName = "${prefix}${it.name}"
-                typeRegistry[fqName] = ClassName(javaPackage, it.name)
-                messageDescriptorMap[fqName] = it
+            file.messageTypeList.forEach { message ->
+                val messageFqName = "${prefix}${message.name}"
+                val messageClassName = ClassName(javaPackage, message.name)
+                typeRegistry[messageFqName] = messageClassName
+                messageDescriptorMap[messageFqName] = message
+                message.enumTypeList.forEach { enumType ->
+                    val enumFqName = "$messageFqName.${enumType.name}"
+                    typeRegistry[enumFqName] = messageClassName.nestedClass(enumType.name)
+                }
             }
             file.enumTypeList.forEach { typeRegistry["${prefix}${it.name}"] = ClassName(javaPackage, it.name) }
             file.serviceList.forEach { typeRegistry["${prefix}${it.name}"] = ClassName(javaPackage, it.name) }
@@ -77,6 +82,8 @@ class ProtoKitCodegen(
         if (descriptor.fieldList.isNotEmpty() || oneofDeclarations.isNotEmpty()) {
             builder.addModifiers(KModifier.DATA)
         }
+
+        descriptor.enumTypeList.forEach { builder.addType(generateEnum(it, pkg, descriptor.name)) }
 
         val constructor = FunSpec.constructorBuilder()
 
@@ -122,8 +129,12 @@ class ProtoKitCodegen(
             .build()
     }
 
-    private fun generateEnum(descriptor: DescriptorProtos.EnumDescriptorProto, pkg: String): TypeSpec {
-        val enumClass = TypeSpec.enumBuilder(resolveType(descriptor.name, pkg))
+    private fun generateEnum(descriptor: DescriptorProtos.EnumDescriptorProto, pkg: String, messageName: String? = null): TypeSpec {
+        val prefix = if (pkg.isNotEmpty()) ".$pkg." else "."
+        val fqName = if (messageName != null) "${prefix}${messageName}.${descriptor.name}" else "${prefix}${descriptor.name}"
+        val enumClassName = typeRegistry[fqName] ?: throw IllegalStateException("Type '$fqName' not found. Registered: ${typeRegistry.keys}")
+
+        val enumClass = TypeSpec.enumBuilder(enumClassName)
         descriptor.valueList.forEach { enumClass.addEnumConstant(it.name) }
         return enumClass.build()
     }
