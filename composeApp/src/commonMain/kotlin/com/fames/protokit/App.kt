@@ -33,7 +33,7 @@ import kotlinx.coroutines.withContext
 @Composable
 @Preview
 fun App() {
-    val client = ProtoClient("https://motorcloud.atm.smarting.es:32132")
+    val client = ProtoClient("")
     val service = DeviceContextServiceClient(client)
 
     var state by remember { mutableStateOf<UiState>(UiState.Loading) }

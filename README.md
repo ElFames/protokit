@@ -11,11 +11,12 @@
 | :--- | :--- |
 | **Android** | ✅ Supported |
 | **JVM** | ✅ Supported |
-| **iOS** | ✅ Supported |
+| **iOS** | ✅ Supported (Native gRPC) |
 | **Web** | 🚧 Planned |
 
 ### ✅ Features
 - **Unary Calls**: Full support for the standard gRPC request-response flow.
+- **Native iOS Client**: Automatically generates the necessary Swift code to use the native `gRPC-swift` library on iOS.
 - **Proto3 Data Types**: Includes `string`, `int32`, `int64`, `bool`, `float`, `double`, `bytes`, nested messages, `enums`, `repeated`, `map`, `oneof`, and `any` fields.
 - **Robust Code Generation**: Powered by the official `protoc` compiler (`4.33.5`) and `kotlinpoet` (`2.2.0`) for clean, predictable code.
 - **Cross-File Imports**: Messages from one `.proto` file can be used in another, and the plugin will resolve them correctly.
@@ -23,7 +24,6 @@
 ### ❌ Not Supported
 - **gRPC Streaming**: Client, server, or bidirectional streaming is not yet supported.
 - **Interceptors**: No support for client-side interceptors at this time.
-- **`oneof`, `map`, `any`**: These Protobuf types are not yet implemented.
 
 ---
 
@@ -39,8 +39,13 @@ ProtoKit is built on three core principles:
 
 ## 🛠️ How to Use
 
-### 1. Add the Plugin
-In your module's `build.gradle.kts`, apply the ProtoKit plugin. It will automatically apply and configure the official Google Protobuf plugin for you.
+### 1. Add Dependencies
+
+#### For iOS (in Xcode)
+Add the `gRPC-swift` package dependency to your Xcode project. ProtoKit will automatically configure it. (Note: gRPC-swift includes NIO, so no separate dependency is needed).
+
+#### For Gradle (in your KMP module)
+In your module's `build.gradle.kts`, apply the ProtoKit plugin:
 
 ```kotlin
 plugins {
@@ -49,8 +54,7 @@ plugins {
 }
 ```
 
-### 2. Add the SDK Dependency
-Add the `protokit-sdk` to your common source set:
+Then, add the `protokit-sdk` to your common source set:
 
 ```kotlin
 kotlin {
@@ -64,8 +68,11 @@ kotlin {
 }
 ```
 
-### 3. Place Your `.proto` Files
+### 2. Place Your `.proto` Files
 Put your `.proto` files in `src/commonMain/protos`. The plugin will automatically find and process them.
+
+### 3. Build Your Project
+Run a Gradle build. The plugin will automatically generate all the necessary Kotlin and Swift code.
 
 ---
 
@@ -98,9 +105,6 @@ val modelOrNull = response.getModelOrNull()
 val error = response.getError()
 val isSuccess = response.isSuccess()
 val isFailure = response.isFailure()
-
-
-
 ```
 
 ---
@@ -111,8 +115,6 @@ ProtoKit uses a robust, build-time code generation process to create clean, type
 
 1.  **Automatic Configuration**: The `com.fames.protokit.plugin` automatically applies and configures the official `com.google.protobuf` plugin.
 2.  **Descriptor Generation**: It configures the `protoc` compiler to generate a `descriptor.pb` file, which is a machine-readable model of your proto definitions.
-3.  **Kotlin Code Generation**: Our plugin then reads this descriptor file and uses `kotlinpoet` to generate idiomatic Kotlin data classes and service interfaces.
-
-This entire process is designed to work seamlessly within a Kotlin Multiplatform project, correctly handling the complexities of the Android and KMP Gradle plugins.
+3.  **Kotlin & Swift Code Generation**: Our plugin then reads this descriptor file and uses `kotlinpoet` to generate idiomatic Kotlin data classes and service interfaces. It also generates the necessary Swift code to create a native gRPC transport on iOS.
 
 For a more detailed explanation, see the [**ARCHITECTURE.md**](Architecture.md) document.
