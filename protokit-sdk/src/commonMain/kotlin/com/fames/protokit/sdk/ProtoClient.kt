@@ -1,9 +1,12 @@
 package com.fames.protokit.sdk
 
+import com.fames.protokit.core.transport.GrpcTransportProvider
 import com.fames.protokit.core.InternalProtoClient
 import com.fames.protokit.core.provideGrpcTransport
 import com.fames.protokit.sdk.models.Response
 import com.fames.protokit.core.transport.GrpcTransport
+import com.fames.protokit.sdk.models.Platform
+import com.fames.protokit.sdk.models.platform
 import kotlinx.coroutines.flow.Flow
 
 class ProtoClient(
@@ -11,7 +14,13 @@ class ProtoClient(
     private val defaultTimeoutMillis: Long? = 15_000,
     private val defaultHeaders: (suspend () -> Map<String, String>)? = null
 ) {
-    private val transport: GrpcTransport = provideGrpcTransport(baseUrl)
+    private val transport: GrpcTransport = GrpcTransportProvider.grpcTransport
+
+    init {
+        provideGrpcTransport()
+        transport.baseUrl = baseUrl
+        transport.initIos()
+    }
 
     private val client = InternalProtoClient(
         transport = transport,

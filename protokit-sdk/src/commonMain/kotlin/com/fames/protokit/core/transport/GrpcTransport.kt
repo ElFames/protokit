@@ -1,7 +1,9 @@
 package com.fames.protokit.core.transport
 
-internal interface GrpcTransport {
+interface GrpcTransport {
+    var baseUrl: String
 
+    fun initIos()
     suspend fun unaryCall(
         method: String,
         requestBytes: ByteArray,

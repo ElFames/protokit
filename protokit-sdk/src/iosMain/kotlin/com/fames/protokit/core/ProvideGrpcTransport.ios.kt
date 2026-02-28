@@ -1,7 +1,5 @@
 package com.fames.protokit.core
 
-import com.fames.protokit.core.transport.GrpcTransport
+internal actual fun provideGrpcTransport() {
 
-internal actual fun provideGrpcTransport(url: String): GrpcTransport {
-    return IosGrpcTransport(url)
 }

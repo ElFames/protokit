@@ -17,15 +17,14 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-internal class AndroidGrpcTransport(
-    private val baseUrl: String,
-    client: OkHttpClient? = null
-) : GrpcTransport {
+internal class AndroidGrpcTransport: GrpcTransport {
 
-    private val httpClient =
-        client ?: OkHttpClient.Builder()
-            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-            .build()
+    override var baseUrl: String = ""
+    private val httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1)).build()
+
+    override fun initIos() {
+
+    }
 
     override suspend fun unaryCall(
         method: String,
