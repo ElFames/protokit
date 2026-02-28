@@ -23,114 +23,107 @@ abstract class GenerateIosGrpcTransportTask : DefaultTask() {
 import Foundation
 import GRPC
 import NIO
+import NIOHPACK
 import ComposeApp
 
-class IosGrpcTransport: NSObject, GrpcTransport {
-    let baseUrl: String
+@available(iOS 13.0, *)
+final class IosGrpcTransport: NSObject, GrpcTransport {
 
-    private let group: MultiThreadedEventLoopGroup
-    private let connection: ClientConnection
+    var baseUrl: String = ""
 
-    func initIos() {
-        guard let urlComponents = URL.init(string: baseUrl),
-        let host = urlComponents.host,
-        let port = urlComponents.port else {
-            fatalError("Invalid base URL for gRPC client: \(baseUrl)")
+    private var group: EventLoopGroup?
+    private var channel: GRPCChannel?
+
+    func doInitIos() {
+        guard
+            !baseUrl.isEmpty,
+            let url = URL(string: baseUrl),
+            let host = url.host,
+            let port = url.port
+        else {
+            print("ProtoKit-iOS Error: Invalid baseUrl -> \(baseUrl)")
+            return
         }
 
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        do {
+            let group = PlatformSupport.makeEventLoopGroup(loopCount: 1)
 
-        let tls = ClientConnection.Configuration.TLS.init(configuration: .makeClientConfiguration())
-        let config = ClientConnection.Configuration(target: .hostAndPort(host, port), eventLoopGroup: group, tls: tls)
-        self.connection = ClientConnection(configuration: config)
+            let channel = try GRPCChannelPool.with(
+                target: .host(host, port: port),
+                transportSecurity: .plaintext,
+                eventLoopGroup: group
+            )
 
-        print("gRPC connection configured for \(host):\(port)")
-        super.init()
+            self.group = group
+            self.channel = channel
+
+            print("ProtoKit-iOS: gRPC v1 initialized for \(host):\(port)")
+        } catch {
+            print("ProtoKit-iOS Error: Failed to initialize client: \(error)")
+        }
     }
 
     func unaryCall(
         method: String,
         requestBytes: KotlinByteArray,
         timeoutMillis: KotlinLong?,
-        headers: [String : String],
+        headers: [String: String],
         completionHandler: @escaping (TransportResponse?, Error?) -> Void
     ) {
-        let requestData = Data(requestBytes)
 
-        var callOptions = CallOptions()
-        headers.forEach { key, value in
-            callOptions.customMetadata.add(name: key, value: value)
-        }
-        if let timeout = timeoutMillis?.int64Value {
-            callOptions.timeLimit = .timeout(.milliseconds(timeout))
+        guard let channel = self.channel else {
+            completionHandler(nil,
+                IosGrpcError.clientNotInitialized("Client not initialized. Call initIos() first.")
+            )
+            return
         }
 
-        let unaryCall = connection.makeUnaryCall(
+        let requestData = requestBytes.toSwiftData()
+
+        var metadata = HPACKHeaders()
+        headers.forEach { metadata.add(name: $0.key, value: $0.value) }
+
+        let timeLimit: TimeLimit =
+            timeoutMillis.map { .timeout(.milliseconds(Int64($0.int64Value))) }
+            ?? .none
+
+        let callOptions = CallOptions(
+            customMetadata: metadata,
+            timeLimit: timeLimit
+        )
+
+        let call = channel.makeUnaryCall(
             path: method,
             request: requestData,
             callOptions: callOptions
         )
 
-        unaryCall.response.and(unaryCall.trailingMetadata).whenComplete { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let (responseData, trailingMetadata)):
-                    let trailers = self.extractTrailers(from: trailingMetadata)
+        call.response.whenComplete { result in
+            switch result {
+            case .success(let responseData):
+
+                call.trailingMetadata.whenComplete { trailersResult in
+                    let trailers = (try? trailersResult.get()) ?? HPACKHeaders()
 
                     let transportResponse = TransportResponse(
                         body: responseData.toKotlinByteArray(),
-                        trailers: trailers
+                        trailers: trailers.toGrpcTrailers()
                     )
-                    completionHandler(transportResponse, nil)
 
-                case .failure(let error):
-                    completionHandler(nil, error)
+                    completionHandler(transportResponse, nil)
                 }
+
+            case .failure(let error):
+                completionHandler(nil, error)
             }
         }
     }
 
-    func serverStream(
-    method: String,
-    requestBytes: KotlinByteArray,
-    headers: [String : String]
-    ) -> StreamCall {
-        fatalError("serverStream(swift) no está implementado")
-    }
-
     deinit {
-        try? connection.close().wait()
-        try? group.syncShutdownGracefully()
-    }
+        print("ProtoKit-iOS: Shutting down gRPC...")
 
-    private func extractTrailers(from metadata: HPACKHeaders) -> GrpcTrailers {
-        let rawTrailers = metadata.reduce(into: [String: String]()) { result, header in
-            result[header.name] = header.value
-        }
-
-        let grpcStatusCodeStr = rawTrailers["grpc-status"]
-        let grpcStatusCode = Int32(grpcStatusCodeStr ?? "") ?? GrpcStatus.unknown.code
-        let grpcStatus = GrpcStatus(code: grpcStatusCode)
-        let grpcMessage = rawTrailers["grpc-message"]
-
-        return GrpcTrailers(
-            status: grpcStatus,
-            message: grpcMessage,
-            raw: rawTrailers
-        )
-    }
-}
-
-extension Data {
-    func toKotlinByteArray() -> KotlinByteArray {
-        let byteArray = self.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> [UInt8] in
-            Array(bytes)
-        }
-        let kotlinByteArray = KotlinByteArray(size: Int32(byteArray.count))
-        for (index, byte) in byteArray.enumerated() {
-            kotlinByteArray.set(index: Int32(index), value: Int8(bitPattern: byte))
-        }
-        return kotlinByteArray
+        try? channel?.close().wait()
+        try? group?.syncShutdownGracefully()
     }
 }
 """.trimIndent()

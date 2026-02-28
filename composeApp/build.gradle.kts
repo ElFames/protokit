@@ -24,6 +24,7 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            export(project(":protokit-sdk"))
         }
     }
     
@@ -43,7 +44,7 @@ kotlin {
             implementation(libs.compose.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(project(":protokit-sdk"))
+            api(project(":protokit-sdk"))
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
