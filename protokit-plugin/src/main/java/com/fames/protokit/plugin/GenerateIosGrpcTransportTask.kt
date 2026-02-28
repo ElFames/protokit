@@ -13,9 +13,11 @@ abstract class GenerateIosGrpcTransportTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val iosAppPath = rootDirPath.get().replace("\\composeApp", "\\iosApp") + "\\iosApp"
-        val iosAppDir = File(iosAppPath)
-        val iosProtoKitDir = File(iosAppDir, "/ProtoKit")
+        val iosAppDirForMac = File(rootDirPath.get().replace("/composeApp", "/iosApp") + "/iosApp")
+        val iosProtoKitDirForMac = File(iosAppDirForMac, "/ProtoKit")
+
+        val iosAppDirForWindows = File(rootDirPath.get().replace("\\composeApp", "\\iosApp") + "\\iosApp")
+        val iosProtoKitDirForWindows = File(iosAppDirForWindows, "/ProtoKit")
 
         val swiftContent = """
 import Foundation
@@ -133,22 +135,31 @@ extension Data {
 }
 """.trimIndent()
 
-        iosProtoKitDir.mkdirs()
+        iosProtoKitDirForWindows.mkdirs()
+        iosProtoKitDirForMac.mkdirs()
 
-        val swiftFile = File(iosProtoKitDir, "IosGrpcTransport.swift")
-        swiftFile.writeText(swiftContent)
+        File(iosProtoKitDirForWindows, "IosGrpcTransport.swift").writeText(swiftContent)
+        File(iosProtoKitDirForMac, "IosGrpcTransport.swift").writeText(swiftContent)
 
-        val contentViewFile = File(iosAppDir, "ContentView.swift")
-        if (contentViewFile.exists()) {
-            val lines = contentViewFile.readLines().toMutableList()
-            val targetLine = "MainViewControllerKt.MainViewController()"
-            val newLine = "        GrpcTransportProvider.provide(IosGrpcTransport())"
-            val insertionIndex = lines.indexOfFirst { it.contains(targetLine) }
+        val contentViewFileForWindows = File(iosAppDirForWindows, "ContentView.swift")
+        val contentViewFileForMac = File(iosAppDirForMac, "ContentView.swift")
 
-            if (insertionIndex != -1 && !lines.any { it.contains("GrpcTransportProvider.provide") }) {
-                lines.add(insertionIndex, newLine)
-                contentViewFile.writeText(lines.joinToString(System.lineSeparator()))
-            }
+        if (contentViewFileForWindows.exists()) {
+            writeBridge(contentViewFileForWindows)
+        } else {
+            writeBridge(contentViewFileForMac)
+        }
+    }
+
+    private fun writeBridge(file: File) {
+        val lines = file.readLines().toMutableList()
+        val targetLine = "MainViewControllerKt.MainViewController()"
+        val newLine = "        GrpcTransportProvider.provide(IosGrpcTransport())"
+        val insertionIndex = lines.indexOfFirst { it.contains(targetLine) }
+
+        if (insertionIndex != -1 && !lines.any { it.contains("GrpcTransportProvider.provide") }) {
+            lines.add(insertionIndex, newLine)
+            file.writeText(lines.joinToString(System.lineSeparator()))
         }
     }
 }
