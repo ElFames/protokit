@@ -1,18 +1,16 @@
 package com.fames.protokit.core
 
-import com.fames.protokit.core.io.Framer
 import com.fames.protokit.core.transport.GrpcTransport
 import com.fames.protokit.core.transport.StreamCall
 import com.fames.protokit.core.transport.TransportResponse
 import com.fames.protokit.sdk.models.GrpcStatus
 import com.fames.protokit.sdk.models.GrpcTrailers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.io.IOException
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -33,7 +31,7 @@ internal class AndroidGrpcTransport: GrpcTransport {
         headers: Map<String, String>
     ): TransportResponse = suspendCancellableCoroutine { cont ->
 
-        val framed = Framer.frame(requestBytes)
+        val framed = frame(requestBytes)
 
         val callClient =
             timeoutMillis?.let {
@@ -70,7 +68,7 @@ internal class AndroidGrpcTransport: GrpcTransport {
 
                     cont.resume(
                         TransportResponse(
-                            body = Framer.unframe(body),
+                            body = unframe(body),
                             trailers = trailers
                         )
                     )
@@ -87,6 +85,23 @@ internal class AndroidGrpcTransport: GrpcTransport {
     ): StreamCall {
         TODO("Not yet implemented.")
     }
+
+    private fun frame(data: ByteArray): ByteArray =
+        ByteBuffer.allocate(5 + data.size)
+            .put(0)
+            .putInt(data.size)
+            .put(data)
+            .array()
+
+    private fun unframe(data: ByteArray): ByteArray {
+        val compressed = data[0].toInt()
+        if (compressed != 0) {
+            error("gRPC message compression is not supported yet")
+        }
+        val length = ByteBuffer.wrap(data, 1, 4).int
+        return data.copyOfRange(5, 5 + length)
+    }
+
 }
 
 internal fun Headers.toGrpcTrailers(): GrpcTrailers {

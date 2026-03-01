@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BA7917D12F53A15C00C04834 /* GRPC in Frameworks */ = {isa = PBXBuildFile; productRef = BA7917D02F53A15C00C04834 /* GRPC */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		83779CB6E72A111CCBC4CF50 /* ProtoKit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ProtoKit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -41,12 +45,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BA7917D12F53A15C00C04834 /* GRPC in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5DCB43D9B983351D436A62CB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				83779CB6E72A111CCBC4CF50 /* ProtoKit.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		C946F6F3B7D54AC710B244CF = {
 			isa = PBXGroup;
 			children = (
@@ -54,14 +67,6 @@
 				7DAD26C8F0CC19B1277F881D /* iosApp */,
 				5DCB43D9B983351D436A62CB /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		5DCB43D9B983351D436A62CB /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				83779CB6E72A111CCBC4CF50 /* ProtoKit.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -85,6 +90,7 @@
 			);
 			name = iosApp;
 			packageProductDependencies = (
+				BA7917D02F53A15C00C04834 /* GRPC */,
 			);
 			productName = iosApp;
 			productReference = 83779CB6E72A111CCBC4CF50 /* ProtoKit.app */;
@@ -114,6 +120,9 @@
 			);
 			mainGroup = C946F6F3B7D54AC710B244CF;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BA7917CF2F53A15C00C04834 /* XCRemoteSwiftPackageReference "grpc-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5DCB43D9B983351D436A62CB /* Products */;
 			projectDirPath = "";
@@ -232,6 +241,34 @@
 			};
 			name = Debug;
 		};
+		45347FF7766EBA0DCF6D2E17 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
+				DEVELOPMENT_TEAM = Z666SZ3UVB;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iosApp/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		6D03FD44A96F2DF75F764FDE /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = BE6B60AA540CE4E5A284467C /* Configuration */;
@@ -290,34 +327,6 @@
 			};
 			name = Release;
 		};
-		45347FF7766EBA0DCF6D2E17 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = iosApp/Info.plist;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
 		9F36B088BEDC1D1E704F81C4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -327,7 +336,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_ASSET_PATHS = "\"iosApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
+				DEVELOPMENT_TEAM = Z666SZ3UVB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -349,15 +358,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		8FCA1FD691F15A0936707F44 /* Build configuration list for PBXProject "iosApp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				273059079C64B889F1314537 /* Debug */,
-				6D03FD44A96F2DF75F764FDE /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		4A4AE49500C4C5B518608A94 /* Build configuration list for PBXNativeTarget "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -367,7 +367,36 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		8FCA1FD691F15A0936707F44 /* Build configuration list for PBXProject "iosApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				273059079C64B889F1314537 /* Debug */,
+				6D03FD44A96F2DF75F764FDE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BA7917CF2F53A15C00C04834 /* XCRemoteSwiftPackageReference "grpc-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/grpc/grpc-swift";
+			requirement = {
+				kind = versionRange;
+				maximumVersion = 1.9.9;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BA7917D02F53A15C00C04834 /* GRPC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BA7917CF2F53A15C00C04834 /* XCRemoteSwiftPackageReference "grpc-swift" */;
+			productName = GRPC;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8E28103A84FBF66CFEA52C21 /* Project object */;
 }

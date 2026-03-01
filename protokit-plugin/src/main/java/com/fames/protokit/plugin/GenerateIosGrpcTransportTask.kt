@@ -22,9 +22,10 @@ abstract class GenerateIosGrpcTransportTask : DefaultTask() {
         val swiftContent = """
 import Foundation
 import GRPC
-import NIO
-import NIOHPACK
+import NIOCore
+import NIOPosix
 import ComposeApp
+import NIOHPACK
 
 @available(iOS 13.0, *)
 final class IosGrpcTransport: NSObject, GrpcTransport {
@@ -32,36 +33,37 @@ final class IosGrpcTransport: NSObject, GrpcTransport {
     var baseUrl: String = ""
 
     private var group: EventLoopGroup?
-    private var channel: GRPCChannel?
+    private var connection: ClientConnection?
+
+    // MARK: - Init
 
     func doInitIos() {
-        guard
-            !baseUrl.isEmpty,
-            let url = URL(string: baseUrl),
-            let host = url.host,
-            let port = url.port
-        else {
-            print("ProtoKit-iOS Error: Invalid baseUrl -> \(baseUrl)")
-            return
+
+        guard let url = URL(string: baseUrl),
+              let host = url.host,
+              let port = url.port else {
+            fatalError("Invalid baseUrl -> \(baseUrl)")
         }
 
-        do {
-            let group = PlatformSupport.makeEventLoopGroup(loopCount: 1)
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
 
-            let channel = try GRPCChannelPool.with(
-                target: .host(host, port: port),
-                transportSecurity: .plaintext,
-                eventLoopGroup: group
-            )
+        let connection: ClientConnection
 
-            self.group = group
-            self.channel = channel
-
-            print("ProtoKit-iOS: gRPC v1 initialized for \(host):\(port)")
-        } catch {
-            print("ProtoKit-iOS Error: Failed to initialize client: \(error)")
+        if url.scheme == "https" {
+            connection = ClientConnection
+                .usingTLSBackedByNIOSSL(on: group)
+                .connect(host: host, port: port)
+        } else {
+            connection = ClientConnection
+                .insecure(group: group)
+                .connect(host: host, port: port)
         }
+
+        self.group = group
+        self.connection = connection
     }
+
+    // MARK: - Unary
 
     func unaryCall(
         method: String,
@@ -71,46 +73,44 @@ final class IosGrpcTransport: NSObject, GrpcTransport {
         completionHandler: @escaping (TransportResponse?, Error?) -> Void
     ) {
 
-        guard let channel = self.channel else {
-            completionHandler(nil,
-                IosGrpcError.clientNotInitialized("Client not initialized. Call initIos() first.")
-            )
+        guard let connection = self.connection else {
+            completionHandler(nil, IosGrpcError.clientNotInitialized)
             return
         }
 
         let requestData = requestBytes.toSwiftData()
 
-        var metadata = HPACKHeaders()
-        headers.forEach { metadata.add(name: $0.key, value: $0.value) }
+        var callOptions = CallOptions()
+        headers.forEach { callOptions.customMetadata.add(name: $0.key, value: $0.value) }
+        if let timeout = timeoutMillis?.int64Value {
+            callOptions.timeLimit = .timeout(.milliseconds(timeout))
+        }
 
-        let timeLimit: TimeLimit =
-            timeoutMillis.map { .timeout(.milliseconds(Int64($0.int64Value))) }
-            ?? .none
-
-        let callOptions = CallOptions(
-            customMetadata: metadata,
-            timeLimit: timeLimit
-        )
-
-        let call = channel.makeUnaryCall(
-            path: method,
-            request: requestData,
-            callOptions: callOptions
-        )
+        let call: UnaryCall<RawGRPCPayload, RawGRPCPayload> =
+            connection.makeUnaryCall(
+                path: method,
+                request: RawGRPCPayload(data: requestData),
+                callOptions: callOptions
+            )
 
         call.response.whenComplete { result in
             switch result {
-            case .success(let responseData):
 
+            case .success(let payload):
                 call.trailingMetadata.whenComplete { trailersResult in
-                    let trailers = (try? trailersResult.get()) ?? HPACKHeaders()
+                    let trailers: HPACKHeaders
+                    switch trailersResult {
+                    case .success(let headers):
+                        trailers = headers
+                    case .failure:
+                        trailers = HPACKHeaders()
+                    }
 
-                    let transportResponse = TransportResponse(
-                        body: responseData.toKotlinByteArray(),
-                        trailers: trailers.toGrpcTrailers()
+                    let response = TransportResponse(
+                        body: payload.data.toKotlinByteArray(),
+                        trailers: Self.mapTrailers(trailers)
                     )
-
-                    completionHandler(transportResponse, nil)
+                    completionHandler(response, nil)
                 }
 
             case .failure(let error):
@@ -119,13 +119,85 @@ final class IosGrpcTransport: NSObject, GrpcTransport {
         }
     }
 
-    deinit {
-        print("ProtoKit-iOS: Shutting down gRPC...")
+    // MARK: - Stream (no implementado)
 
-        try? channel?.close().wait()
+    func serverStream(
+        method: String,
+        requestBytes: KotlinByteArray,
+        headers: [String : String]
+    ) -> StreamCall {
+        fatalError("serverStream not implemented")
+    }
+
+    deinit {
+        try? connection?.close().wait()
         try? group?.syncShutdownGracefully()
     }
 }
+
+struct RawGRPCPayload: GRPCPayload {
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(serializedByteBuffer: inout ByteBuffer) throws {
+        self.data = serializedByteBuffer.readData(length: serializedByteBuffer.readableBytes) ?? Data()
+    }
+
+    func serialize(into buffer: inout ByteBuffer) throws {
+        buffer.writeBytes(data)
+    }
+}
+
+private extension IosGrpcTransport {
+
+    static func mapTrailers(_ metadata: HPACKHeaders) -> GrpcTrailers {
+
+        var raw: [String: String] = [:]
+        metadata.forEach { data in
+            raw[data.name] = data.value
+        }
+
+        let statusCode = Int32(raw["grpc-status"] ?? "") ?? GrpcStatus.unknown.code
+        let status = GrpcStatus.companion.fromCode(code: statusCode)
+        let message = raw["grpc-message"]
+
+        return GrpcTrailers(
+            status: status,
+            message: message,
+            raw: raw
+        )
+    }
+}
+
+extension Data {
+    func toKotlinByteArray() -> KotlinByteArray {
+        let array = KotlinByteArray(size: Int32(count))
+        for (i, byte) in self.enumerated() {
+            array.set(index: Int32(i), value: Int8(bitPattern: byte))
+        }
+        return array
+    }
+}
+
+extension KotlinByteArray {
+    func toSwiftData() -> Data {
+        var bytes = [UInt8](repeating: 0, count: Int(size))
+        for i in 0..<Int(size) {
+            bytes[i] = UInt8(bitPattern: get(index: Int32(i)))
+        }
+        return Data(bytes)
+    }
+}
+
+enum IosGrpcError: Error {
+    case clientNotInitialized
+    case invalidMethodFormat
+}
+
 """.trimIndent()
 
         iosProtoKitDirForWindows.mkdirs()
@@ -134,25 +206,86 @@ final class IosGrpcTransport: NSObject, GrpcTransport {
         File(iosProtoKitDirForWindows, "IosGrpcTransport.swift").writeText(swiftContent)
         File(iosProtoKitDirForMac, "IosGrpcTransport.swift").writeText(swiftContent)
 
-        val contentViewFileForWindows = File(iosAppDirForWindows, "ContentView.swift")
-        val contentViewFileForMac = File(iosAppDirForMac, "ContentView.swift")
+        val iosAppFileForWindows = File(iosAppDirForWindows, "iosApp.swift")
+        val iosAppFileForMac = File(iosAppDirForMac, "iosApp.swift")
 
-        if (contentViewFileForWindows.exists()) {
-            writeBridge(contentViewFileForWindows)
+        if (iosAppFileForWindows.exists()) {
+            writeBridge(iosAppFileForWindows)
         } else {
-            writeBridge(contentViewFileForMac)
+            writeBridge(iosAppFileForMac)
         }
     }
 
     private fun writeBridge(file: File) {
-        val lines = file.readLines().toMutableList()
-        val targetLine = "MainViewControllerKt.MainViewController()"
-        val newLine = "        GrpcTransportProvider.provide(IosGrpcTransport())"
-        val insertionIndex = lines.indexOfFirst { it.contains(targetLine) }
 
-        if (insertionIndex != -1 && !lines.any { it.contains("GrpcTransportProvider.provide") }) {
-            lines.add(insertionIndex, newLine)
-            file.writeText(lines.joinToString(System.lineSeparator()))
+        val iosAppFile = File(file.parentFile, "iosApp.swift")
+        if (!iosAppFile.exists()) return
+
+        val lines = iosAppFile.readLines().toMutableList()
+
+        val composeImport = "import ComposeApp"
+        val provideLine =
+            "        GrpcTransportProvider.shared.provide(implementation: IosGrpcTransport())"
+
+        // ----------------------------
+        // 1️⃣ Añadir import ComposeApp
+        // ----------------------------
+        if (!lines.any { it.trim() == composeImport }) {
+
+            val firstImportIndex = lines.indexOfFirst { it.trim().startsWith("import ") }
+
+            if (firstImportIndex != -1) {
+                lines.add(firstImportIndex + 1, composeImport)
+            }
         }
+
+        // Evitar duplicar provide
+        if (lines.any { it.contains("GrpcTransportProvider.shared.provide") }) {
+            iosAppFile.writeText(lines.joinToString(System.lineSeparator()))
+            return
+        }
+
+        // ----------------------------
+        // 2️⃣ Buscar struct que implemente App
+        // ----------------------------
+        val structIndex = lines.indexOfFirst { it.contains(": App") }
+        if (structIndex == -1) {
+            iosAppFile.writeText(lines.joinToString(System.lineSeparator()))
+            return
+        }
+
+        // ----------------------------
+        // 3️⃣ Buscar init existente
+        // ----------------------------
+        val initIndex = lines.indexOfFirst { it.trim().startsWith("init(") }
+
+        if (initIndex != -1) {
+
+            val braceIndex = (initIndex until lines.size)
+                .firstOrNull { lines[it].contains("{") }
+
+            if (braceIndex != null) {
+                lines.add(braceIndex + 1, provideLine)
+            }
+
+        } else {
+
+            val structBraceIndex = (structIndex until lines.size)
+                .firstOrNull { lines[it].contains("{") }
+
+            if (structBraceIndex != null) {
+
+                val initBlock = listOf(
+                    "    init() {",
+                    provideLine,
+                    "    }",
+                    ""
+                )
+
+                lines.addAll(structBraceIndex + 1, initBlock)
+            }
+        }
+
+        iosAppFile.writeText(lines.joinToString(System.lineSeparator()))
     }
 }
