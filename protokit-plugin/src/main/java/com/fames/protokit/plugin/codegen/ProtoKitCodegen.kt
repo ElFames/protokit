@@ -363,7 +363,7 @@ class ProtoKitCodegen(
         return when (field.type) {
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE -> {
                 val type = resolveType(field.typeName)
-                CodeBlock.of("%T.decode(reader)", type)
+                CodeBlock.of("%T.decode(reader.readObject())", type)
             }
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM -> {
                 val enumType = resolveType(field.typeName)
