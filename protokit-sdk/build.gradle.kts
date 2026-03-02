@@ -80,10 +80,10 @@ publishing {
 }
 
 signing {
-    val keyFile = rootProject.file("/Users/miguelangel.salazar/private.asc")
-    val key = keyFile.readText()
-    val secretPassword = localProperties.getProperty("signing.password")
-    useInMemoryPgpKeys(key, secretPassword)
+    //val keyFile = rootProject.file("/Users/miguelangel.salazar/private.asc")
+    //val key = keyFile.readText()
+    //val secretPassword = localProperties.getProperty("signing.password")
+    //useInMemoryPgpKeys(key, secretPassword)
     sign(publishing.publications)
 }
 
@@ -138,7 +138,9 @@ kotlin {
 
         androidMain {
             dependencies {
-                implementation(libs.ktor.client.okhttp)
+                implementation(libs.grpc.okhttp)
+                implementation(libs.grpc.android)
+                implementation(libs.grpc.stub)
             }
         }
 
@@ -150,7 +152,8 @@ kotlin {
         jvmMain {
             dependencies {
                 implementation(libs.kotlinx.coroutinesSwing)
-                implementation(libs.ktor.client.okhttp)
+                implementation(libs.grpc.okhttp)
+                implementation(libs.grpc.stub)
             }
         }
     }

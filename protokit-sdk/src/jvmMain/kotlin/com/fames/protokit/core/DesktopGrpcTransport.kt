@@ -1,29 +1,50 @@
 package com.fames.protokit.core
 
-import com.fames.protokit.core.io.Framer
 import com.fames.protokit.core.transport.GrpcTransport
 import com.fames.protokit.core.transport.StreamCall
 import com.fames.protokit.core.transport.TransportResponse
 import com.fames.protokit.sdk.models.GrpcStatus
 import com.fames.protokit.sdk.models.GrpcTrailers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.io.IOException
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.nio.ByteBuffer
+import io.grpc.CallOptions
+import io.grpc.ManagedChannel
+import io.grpc.ManagedChannelBuilder
+import io.grpc.Metadata
+import io.grpc.MethodDescriptor
+import io.grpc.Status
+import io.grpc.stub.ClientCalls
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asExecutor
+import kotlinx.coroutines.withContext
+import java.io.InputStream
+import java.net.URI
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 internal class DesktopGrpcTransport : GrpcTransport {
+
     override var baseUrl: String = ""
-    private val httpClient = OkHttpClient.Builder().protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1)).build()
+    
+    private var _channel: ManagedChannel? = null
+    private val channel: ManagedChannel
+        get() {
+            if (_channel == null) {
+                val uri = URI(baseUrl)
+                val host = uri.host ?: ""
+                val port = if (uri.port != -1) uri.port else (if (uri.scheme == "https") 443 else 80)
+                
+                val builder = ManagedChannelBuilder.forAddress(host, port)
+                    .executor(Dispatchers.IO.asExecutor())
+                
+                if (uri.scheme != "https") {
+                    builder.usePlaintext()
+                }
+                
+                _channel = builder.build()
+            }
+            return _channel!!
+        }
 
     override fun initIos() {
-
+        // No-op on Desktop
     }
 
     override suspend fun unaryCall(
@@ -31,52 +52,51 @@ internal class DesktopGrpcTransport : GrpcTransport {
         requestBytes: ByteArray,
         timeoutMillis: Long?,
         headers: Map<String, String>
-    ): TransportResponse = suspendCancellableCoroutine { cont ->
-
-        val framed = Framer.frame(requestBytes)
-
-        val callClient =
-            timeoutMillis?.let {
-                httpClient.newBuilder()
-                    .callTimeout(it, TimeUnit.MILLISECONDS)
-                    .build()
-            } ?: httpClient
-
-        val request = Request.Builder()
-            .url("$baseUrl$method")
-            .post(framed.toRequestBody("application/grpc".toMediaType()))
-            .header("TE", "trailers")
-            .apply {
-                headers.forEach { (k, v) -> header(k, v) }
-            }
+    ): TransportResponse = withContext(Dispatchers.IO) {
+        
+        val methodDescriptor = MethodDescriptor.newBuilder<ByteArray, ByteArray>()
+            .setType(MethodDescriptor.MethodType.UNARY)
+            .setFullMethodName(method.removePrefix("/"))
+            .setRequestMarshaller(ByteArrayMarshaller())
+            .setResponseMarshaller(ByteArrayMarshaller())
             .build()
 
-        val call = callClient.newCall(request)
-
-        cont.invokeOnCancellation {
-            call.cancel()
+        var callOptions = CallOptions.DEFAULT
+        if (timeoutMillis != null) {
+            callOptions = callOptions.withDeadlineAfter(timeoutMillis, TimeUnit.MILLISECONDS)
         }
 
-        call.enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                if (cont.isCancelled) return
-                cont.resumeWithException(e)
-            }
+        val metadata = Metadata()
+        headers.forEach { (key, value) ->
+            metadata.put(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER), value)
+        }
 
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    val body = response.body.bytes()
-                    val trailers = response.trailers().toGrpcTrailers()
+        try {
+            val responseBytes = ClientCalls.blockingUnaryCall(
+                channel,
+                methodDescriptor,
+                callOptions,
+                requestBytes
+            )
 
-                    cont.resume(
-                        TransportResponse(
-                            body = Framer.unframe(body),
-                            trailers = trailers
-                        )
-                    )
-                }
-            }
-        })
+            TransportResponse(
+                body = responseBytes,
+                trailers = GrpcTrailers(status = GrpcStatus.OK)
+            )
+        } catch (e: io.grpc.StatusRuntimeException) {
+            TransportResponse(
+                body = byteArrayOf(),
+                trailers = GrpcTrailers(
+                    status = GrpcStatus.fromCode(e.status.code.value()),
+                    message = e.status.description,
+                    raw = e.trailers?.let { t -> 
+                        t.keys().associateWith { key -> 
+                            t.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER)) ?: ""
+                        }
+                    } ?: emptyMap()
+                )
+            )
+        }
     }
 
     override fun serverStream(
@@ -84,18 +104,11 @@ internal class DesktopGrpcTransport : GrpcTransport {
         requestBytes: ByteArray,
         headers: Map<String, String>
     ): StreamCall {
-        TODO("Not yet implemented.")
+        TODO("Streaming not implemented in Desktop native yet")
     }
 }
 
-internal fun Headers.toGrpcTrailers(): GrpcTrailers {
-    val status = this["grpc-status"]?.toIntOrNull()?.let {
-        GrpcStatus.fromCode(it)
-    } ?: GrpcStatus.UNKNOWN
-
-    return GrpcTrailers(
-        status = status,
-        message = this["grpc-message"],
-        raw = toMultimap().mapValues { it.value.joinToString(",") }
-    )
+private class ByteArrayMarshaller : MethodDescriptor.Marshaller<ByteArray> {
+    override fun stream(value: ByteArray): InputStream = value.inputStream()
+    override fun parse(stream: InputStream): ByteArray = stream.readBytes()
 }

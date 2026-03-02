@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.fames.protokit.plugin"
-version = "0.1.1"
+version = "0.1.2"
 
 gradlePlugin {
     website.set("https://github.com/ElFames/protokit")

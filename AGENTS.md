@@ -11,6 +11,7 @@ Agents in ProtoKit must adhere to the project's core principles:
 -   **Explicitness over Magic**: Reduce repetitive work, but never introduce hidden behavior.
 -   **Architectural Consistency**: All changes must align with the established architecture.
 -   **Predictability**: The outcome of any agent action should be easily understandable by a human developer.
+-   **Platform Native Performance**: We prioritize using the official, native gRPC stacks across all platforms (Android, iOS, and Desktop).
 
 ---
 
@@ -40,11 +41,16 @@ The primary task for agents in this project is code generation. This process mus
 2.  **Parsing**: Parsing is handled **exclusively** by the official `protoc` compiler, invoked via the `com.google.protobuf` Gradle plugin. The plugin is configured to generate a `FileDescriptorSet`.
 3.  **Code Creation**: The agent reads the `FileDescriptorSet` and uses it as a model to generate Kotlin code with the `kotlinpoet` library.
 
-**Key constraints:**
+---
 
--   **No Manual Parsing**: Agents must not attempt to parse `.proto` files manually.
--   **Follow Existing Style**: The generated code must match the style and structure of the code in `ProtoKitCodegen.kt`.
--   **Readable and Debuggable**: Generated code must always be clear and easy for a human to debug.
+## Transport Implementation Rules
+
+When working with `GrpcTransport` implementations:
+
+-   **Android**: Use **gRPC-Java (OkHttp)**.
+-   **Desktop (JVM)**: Use **gRPC-Java (OkHttp)**.
+-   **iOS**: Use the generated **gRPC-Swift** transport.
+-   **Manual Framing**: Do not manually implement HTTP/2 framing or framing headers (5-byte prefix) on any platform unless explicitly requested for a new lightweight transport.
 
 ---
 

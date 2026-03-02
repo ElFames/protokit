@@ -42,7 +42,9 @@ This entire process happens at build time, with no impact on runtime performance
 The SDK provides the minimal, essential components needed to make gRPC calls from a Kotlin Multiplatform project.
 
 -   **`ProtoClient`**: The main entry point. It holds a reference to the platform-specific transport, which it retrieves from the `GrpcTransportProvider`.
--   **`GrpcTransportProvider`**: A crucial component that provides the correct `GrpcTransport` implementation based on the current platform (e.g., `OkHttpTransport` for Android, `IosGrpcTransport` for iOS). This allows the common code in `ProtoClient` to remain platform-agnostic.
+-   **`GrpcTransportProvider`**: A crucial component that provides the correct `GrpcTransport` implementation based on the current platform:
+    -   **Android / Desktop (JVM)**: Uses the native **gRPC-Java (OkHttp)** client for maximum performance and reliability.
+    -   **iOS**: Uses the native **gRPC-Swift** library.
 -   **`ProtoReader` / `ProtoWriter`**: Simple, efficient internal classes for encoding and decoding the generated message classes.
 
 ---
@@ -54,6 +56,7 @@ The SDK provides the minimal, essential components needed to make gRPC calls fro
 3.  The `ProtoClient` retrieves the correct transport from the `GrpcTransportProvider`.
 4.  The request object's **generated `encode()` method** is called, which serializes the data into a `ByteArray`.
 5.  The `ProtoClient` sends the request via the platform-specific **transport**.
+    -   On Android, Desktop and iOS, this uses the official, native gRPC stack of the platform.
 6.  The transport returns a `ByteArray` response body.
 7.  The `ProtoClient` calls the **generated `decode()` method** to parse the bytes into a new `data class` instance.
 8.  The final `Response<T>` is returned to the caller.
