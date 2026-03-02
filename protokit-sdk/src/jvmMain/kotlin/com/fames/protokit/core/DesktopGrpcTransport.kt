@@ -6,18 +6,19 @@ import com.fames.protokit.core.transport.TransportResponse
 import com.fames.protokit.sdk.models.GrpcStatus
 import com.fames.protokit.sdk.models.GrpcTrailers
 import io.grpc.CallOptions
+import io.grpc.ClientCall
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import io.grpc.Metadata
 import io.grpc.MethodDescriptor
 import io.grpc.Status
-import io.grpc.stub.ClientCalls
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.InputStream
 import java.net.URI
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 internal class DesktopGrpcTransport : GrpcTransport {
 
@@ -52,7 +53,7 @@ internal class DesktopGrpcTransport : GrpcTransport {
         requestBytes: ByteArray,
         timeoutMillis: Long?,
         headers: Map<String, String>
-    ): TransportResponse = withContext(Dispatchers.IO) {
+    ): TransportResponse = suspendCancellableCoroutine { cont ->
         
         val methodDescriptor = MethodDescriptor.newBuilder<ByteArray, ByteArray>()
             .setType(MethodDescriptor.MethodType.UNARY)
@@ -71,31 +72,39 @@ internal class DesktopGrpcTransport : GrpcTransport {
             metadata.put(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER), value)
         }
 
-        try {
-            val responseBytes = ClientCalls.blockingUnaryCall(
-                channel,
-                methodDescriptor,
-                callOptions,
-                requestBytes
-            )
+        val call = channel.newCall(methodDescriptor, callOptions)
+        
+        var responseBody: ByteArray? = null
 
-            TransportResponse(
-                body = responseBytes,
-                trailers = GrpcTrailers(status = GrpcStatus.OK)
-            )
-        } catch (e: io.grpc.StatusRuntimeException) {
-            TransportResponse(
-                body = byteArrayOf(),
-                trailers = GrpcTrailers(
-                    status = GrpcStatus.fromCode(e.status.code.value()),
-                    message = e.status.description,
-                    raw = e.trailers?.let { t -> 
-                        t.keys().associateWith { key -> 
-                            t.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER)) ?: ""
-                        }
-                    } ?: emptyMap()
+        call.start(object : ClientCall.Listener<ByteArray>() {
+            override fun onMessage(message: ByteArray) {
+                responseBody = message
+            }
+
+            override fun onClose(status: Status, trailers: Metadata) {
+                val grpcTrailers = GrpcTrailers(
+                    status = GrpcStatus.fromCode(status.code.value()),
+                    message = status.description,
+                    raw = trailers.keys().associateWith { key ->
+                        trailers.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER)) ?: ""
+                    }
                 )
-            )
+                
+                cont.resume(
+                    TransportResponse(
+                        body = responseBody ?: byteArrayOf(),
+                        trailers = grpcTrailers
+                    )
+                )
+            }
+        }, metadata)
+
+        call.request(1)
+        call.sendMessage(requestBytes)
+        call.halfClose()
+
+        cont.invokeOnCancellation {
+            call.cancel("Cancelled by coroutine", it)
         }
     }
 

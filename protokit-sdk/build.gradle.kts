@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 import org.jetbrains.dokka.gradle.DokkaTask
 import java.util.Properties
 
@@ -125,7 +127,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 implementation(libs.kotlinx.coroutines.core)
-                implementation(libs.ktor.client.core)
+                //implementation(libs.ktor.client.core)
                 implementation(libs.kotlinx.io.core)
             }
         }

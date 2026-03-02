@@ -21,20 +21,17 @@ runner = "1.5.2"
 core = "1.5.0"
 ktor = "3.4.0"
 okhttp = "5.3.2"
-protoKitPlugin = "0.1.1"
 dokka = "2.1.0"
 grpc = "1.68.1"
+protokit-sdk = "0.1.0"
+protokit-plugin = "0.1.2"
 
 
 [libraries]
-# NETWORK
-ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
-ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
-ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
-ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+protokit-sdk = { module = "com.fames.protokit:protokit-sdk", version.ref = "protokit-sdk" }
 
-# gRPC Native (Android)
+# NETWORK
+#ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 grpc-okhttp = { module = "io.grpc:grpc-okhttp", version.ref = "grpc" }
 grpc-android = { module = "io.grpc:grpc-android", version.ref = "grpc" }
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
@@ -73,7 +70,7 @@ kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.re
 
 
 [plugins]
-protoKitPlugin = { id = "com.fames.protokit.plugin", version.ref = "protoKitPlugin" }
+protoKitPlugin = { id = "com.fames.protokit.plugin", version.ref = "protokit-plugin" }
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
