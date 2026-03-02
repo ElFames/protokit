@@ -1,7 +1,11 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.androidLint)
+    alias(libs.plugins.dokka)
     `maven-publish`
     signing
 }
@@ -9,18 +13,46 @@ plugins {
 group = "es.nubaxsolutions"
 version = "0.1.0"
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+val dokkaOutputDir = "$buildDir/dokka"
+
+tasks.getByName<DokkaTask>("dokkaHtml") {
+    outputDirectory.set(file(dokkaOutputDir))
+}
+
+val deleteDokkaOutputDir by tasks.register<Delete>("deleteDokkaOutputDirectory") {
+    delete(dokkaOutputDir)
+}
+
+val javadocJar = tasks.register<Jar>("javadocJar") {
+    dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
+    archiveClassifier.set("javadoc")
+    from(dokkaOutputDir)
+}
+
+val javadocJar = tasks.register<Jar>("javadocJar") {
+    archiveClassifier.set("javadoc")
+}
+
 publishing {
     repositories {
         maven {
             name = "OSSRH"
-            url = uri("https://central.sonatype.com/api/v1/publisher/upload")
+            url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
             credentials {
-                username = project.findProperty("centralUsername")?.toString()
-                password = project.findProperty("centralPassword")?.toString()
+                username = localProperties.getProperty("centralUsername")
+                password = localProperties.getProperty("centralPassword")
             }
         }
     }
     publications.withType<MavenPublication>().configureEach {
+        artifact(javadocJar)
         pom {
             name.set("ProtoKit")
             description.set("A Kotlin Multiplatform gRPC client toolkit")
@@ -52,17 +84,11 @@ publishing {
 }
 
 signing {
-    val secretId = project.findProperty("signing.keyId")?.toString()
-    val secretKey = project.findProperty("signing.secretKeyRingFile")?.toString()
-    val secretPassword = project.findProperty("signing.password")?.toString()
-    if (secretKey != null) {
-        useInMemoryPgpKeys(
-            secretId,
-            secretKey,
-            secretPassword
-        )
-        sign(publishing.publications)
-    }
+    val keyFile = rootProject.file("/Users/miguelangel.salazar/private.asc")
+    val key = keyFile.readText()
+    val secretPassword = localProperties.getProperty("signing.password")
+    useInMemoryPgpKeys(key, secretPassword)
+    sign(publishing.publications)
 }
 
 
@@ -122,7 +148,6 @@ kotlin {
 
         iosMain {
             dependencies {
-                implementation(libs.ktor.client.darwin)
             }
         }
 

@@ -22,6 +22,7 @@ core = "1.5.0"
 ktor = "3.4.0"
 okhttp = "5.3.2"
 protoKitPlugin = "0.1.1"
+dokka = "2.1.0"
 
 
 [libraries]
@@ -76,3 +77,4 @@ kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref =
 jetbrainsKotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 androidLint = { id = "com.android.lint", version.ref = "agp" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
