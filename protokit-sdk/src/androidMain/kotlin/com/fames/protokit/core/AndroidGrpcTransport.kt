@@ -22,26 +22,25 @@ import kotlin.coroutines.resume
 internal class AndroidGrpcTransport : GrpcTransport {
 
     override var baseUrl: String = ""
-    
-    private var _channel: ManagedChannel? = null
-    private val channel: ManagedChannel
-        get() {
-            if (_channel == null) {
-                val uri = java.net.URI(baseUrl)
-                val host = uri.host ?: ""
-                val port = if (uri.port != -1) uri.port else (if (uri.scheme == "https") 443 else 80)
-                
-                val builder = ManagedChannelBuilder.forAddress(host, port)
-                    .executor(Dispatchers.IO.asExecutor())
-                
-                if (uri.scheme != "https") {
-                    builder.usePlaintext()
-                }
-                
-                _channel = builder.build()
-            }
-            return _channel!!
+
+    private val channel: ManagedChannel by lazy {
+        check(baseUrl.isNotBlank()) { "baseUrl must be set before making a call." }
+
+        val uri = java.net.URI(baseUrl)
+        val host = uri.host ?: error("Invalid baseUrl, host could not be parsed from $baseUrl")
+        val port = if (uri.port != -1) uri.port else (if (uri.scheme == "https") 443 else 80)
+
+        val builder = ManagedChannelBuilder.forAddress(host, port)
+            .executor(Dispatchers.IO.asExecutor())
+
+        if (uri.scheme == "https") {
+            builder.useTransportSecurity()
+        } else {
+            builder.usePlaintext()
         }
+
+        builder.build()
+    }
 
     override fun initIos() {
         // No-op on Android
@@ -53,7 +52,7 @@ internal class AndroidGrpcTransport : GrpcTransport {
         timeoutMillis: Long?,
         headers: Map<String, String>
     ): TransportResponse = suspendCancellableCoroutine { cont ->
-        
+
         val methodDescriptor = MethodDescriptor.newBuilder<ByteArray, ByteArray>()
             .setType(MethodDescriptor.MethodType.UNARY)
             .setFullMethodName(method.removePrefix("/"))
@@ -72,7 +71,7 @@ internal class AndroidGrpcTransport : GrpcTransport {
         }
 
         val call = channel.newCall(methodDescriptor, callOptions)
-        
+
         var responseBody: ByteArray? = null
 
         call.start(object : ClientCall.Listener<ByteArray>() {
@@ -84,11 +83,9 @@ internal class AndroidGrpcTransport : GrpcTransport {
                 val grpcTrailers = GrpcTrailers(
                     status = GrpcStatus.fromCode(status.code.value()),
                     message = status.description,
-                    raw = trailers.keys().associateWith { key ->
-                        trailers.get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER)) ?: ""
-                    }
+                    raw = trailers.toMap()
                 )
-                
+
                 cont.resume(
                     TransportResponse(
                         body = responseBody ?: byteArrayOf(),
@@ -119,4 +116,10 @@ internal class AndroidGrpcTransport : GrpcTransport {
 private class ByteArrayMarshaller : MethodDescriptor.Marshaller<ByteArray> {
     override fun stream(value: ByteArray): InputStream = value.inputStream()
     override fun parse(stream: InputStream): ByteArray = stream.readBytes()
+}
+
+private fun Metadata.toMap(): Map<String, String> {
+    return keys().associateWith { key ->
+        get(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER)) ?: ""
+    }
 }

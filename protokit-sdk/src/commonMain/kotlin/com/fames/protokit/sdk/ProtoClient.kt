@@ -16,8 +16,8 @@ class ProtoClient(
 
     init {
         provideGrpcTransport()
+        GrpcTransportProvider.grpcTransport.baseUrl = baseUrl
         transport = GrpcTransportProvider.grpcTransport
-        transport.baseUrl = baseUrl
         transport.initIos()
     }
 

@@ -19,6 +19,7 @@ fun App() {
         val client = ProtoClient("")
         val service = DeviceContextServiceClient(client)
         val response = service.openSession(deviceRequestTest)
+        println(response)
     }
 }
 

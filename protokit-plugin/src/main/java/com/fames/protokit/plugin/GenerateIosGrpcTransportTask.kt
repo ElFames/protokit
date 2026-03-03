@@ -13,11 +13,8 @@ abstract class GenerateIosGrpcTransportTask : DefaultTask() {
 
     @TaskAction
     fun generate() {
-        val iosAppDirForMac = File(rootDirPath.get().replace("/composeApp", "/iosApp") + "/iosApp")
-        val iosProtoKitDirForMac = File(iosAppDirForMac, "/ProtoKit")
-
-        val iosAppDirForWindows = File(rootDirPath.get().replace("\\composeApp", "\\iosApp") + "\\iosApp")
-        val iosProtoKitDirForWindows = File(iosAppDirForWindows, "/ProtoKit")
+        val iosAppDir = File(rootDirPath.get().replace("composeApp", "iosApp"), "/iosApp")
+        val iosProtoKitDir = File(iosAppDir, "/ProtoKit")
 
         val swiftContent = """
 import Foundation
@@ -28,7 +25,7 @@ import ComposeApp
 import NIOHPACK
 
 @available(iOS 13.0, *)
-final class IosGrpcTransport: NSObject, GrpcTransport {
+final class IosGrpcTransport: GrpcTransport {
 
     var baseUrl: String = ""
 
@@ -200,20 +197,12 @@ enum IosGrpcError: Error {
 
 """.trimIndent()
 
-        iosProtoKitDirForWindows.mkdirs()
-        iosProtoKitDirForMac.mkdirs()
+        iosProtoKitDir.mkdirs()
+        val iosGrpcTransportFile = File(iosProtoKitDir, "IosGrpcTransport.swift")
+        if (!iosGrpcTransportFile.exists()) iosGrpcTransportFile.writeText(swiftContent)
 
-        File(iosProtoKitDirForWindows, "IosGrpcTransport.swift").writeText(swiftContent)
-        File(iosProtoKitDirForMac, "IosGrpcTransport.swift").writeText(swiftContent)
-
-        val iosAppFileForWindows = File(iosAppDirForWindows, "iosApp.swift")
-        val iosAppFileForMac = File(iosAppDirForMac, "iosApp.swift")
-
-        if (iosAppFileForWindows.exists()) {
-            writeBridge(iosAppFileForWindows)
-        } else {
-            writeBridge(iosAppFileForMac)
-        }
+        val iosAppFile = File(iosAppDir, "iosApp.swift")
+        writeBridge(iosAppFile)
     }
 
     private fun writeBridge(file: File) {
@@ -227,9 +216,6 @@ enum IosGrpcError: Error {
         val provideLine =
             "        GrpcTransportProvider.shared.provide(implementation: IosGrpcTransport())"
 
-        // ----------------------------
-        // 1️⃣ Añadir import ComposeApp
-        // ----------------------------
         if (!lines.any { it.trim() == composeImport }) {
 
             val firstImportIndex = lines.indexOfFirst { it.trim().startsWith("import ") }
@@ -239,24 +225,17 @@ enum IosGrpcError: Error {
             }
         }
 
-        // Evitar duplicar provide
         if (lines.any { it.contains("GrpcTransportProvider.shared.provide") }) {
             iosAppFile.writeText(lines.joinToString(System.lineSeparator()))
             return
         }
 
-        // ----------------------------
-        // 2️⃣ Buscar struct que implemente App
-        // ----------------------------
         val structIndex = lines.indexOfFirst { it.contains(": App") }
         if (structIndex == -1) {
             iosAppFile.writeText(lines.joinToString(System.lineSeparator()))
             return
         }
 
-        // ----------------------------
-        // 3️⃣ Buscar init existente
-        // ----------------------------
         val initIndex = lines.indexOfFirst { it.trim().startsWith("init(") }
 
         if (initIndex != -1) {
