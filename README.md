@@ -47,7 +47,7 @@ Add the `gRPC-swift` package dependency to your Xcode project. **Important: Prot
 #### For Gradle (in your KMP module)
 In your module's `build.gradle.kts`, apply the plugin and add the runtime SDK. 
 
-**Note:** It is highly recommended to use `api()` instead of `implementation()` for the SDK to ensure that the generated gRPC models and response types are visible to other modules (like your iOS app). Additionally, you must `export()` the library in your iOS framework configuration.
+**Important:** To ensure the iOS native bridge works correctly, you **must** use `api()` instead of `implementation()` for the SDK. This allows the generated gRPC models and response types to be visible to the iOS platform. Additionally, you **must** `export()` the library in your iOS framework configuration.
 
 ```kotlin
 plugins {
@@ -55,14 +55,14 @@ plugins {
 }
 
 kotlin {
-    // 1. Add the SDK as an 'api' dependency
+    // 1. Mandatory: Add the SDK as an 'api' dependency for iOS bridge support
     sourceSets {
         commonMain.dependencies {
             api("com.fames.protokit:protokit-sdk:0.1.1")
         }
     }
 
-    // 2. Export the library in your iOS framework targets
+    // 2. Mandatory: Export the library in your iOS framework targets
     listOf(
         iosX64(),
         iosArm64(),
