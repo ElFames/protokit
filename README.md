@@ -9,16 +9,16 @@
 ### Platforms
 | Platform | Status | Transport Implementation |
 | :--- | :--- | :--- |
-| **Android** | ✅ Supported | **Native gRPC-Java** (OkHttp) |
+| **Android** | ✅ Supported | **Native gRPC-Java** |
 | **iOS** | ✅ Supported | **Native gRPC-Swift** |
-| **JVM (Desktop)** | ✅ Supported | **Native gRPC-Java** (OkHttp) |
+| **JVM (Desktop)** | ✅ Supported | **Native gRPC-Java** |
 | **Web** | 🚧 Planned | - |
 
 ### ✅ Features
 - **Unary Calls**: Full support for the standard gRPC request-response flow.
 - **Native Stack Integration**: Uses the official gRPC stack on Android/Desktop (gRPC-Java) and iOS (gRPC-Swift) for maximum performance and reliability.
 - **Proto3 Data Types**: Includes `string`, `int32`, `int64`, `bool`, `float`, `double`, `bytes`, nested messages, `enums`, `repeated`, `map`, `oneof`, and `any` fields.
-- **Robust Code Generation**: Powered by the official `protoc` compiler and `kotlinpoet` for clean, predictable code.
+- **Robust Code Generation**: Powered by the official `protoc` compiler and `kotlinpoet` for clean, predictably generated code.
 - **Cross-File Imports**: Messages from one `.proto` file can be used in another, and the plugin will resolve them correctly.
 
 ### ❌ Not Supported
@@ -42,14 +42,37 @@ ProtoKit is built on three core principles:
 ### 1. Add Dependencies
 
 #### For iOS (in Xcode)
-Add the `gRPC-swift` package dependency to your Xcode project. ProtoKit will automatically configure it.
+Add the `gRPC-swift` package dependency to your Xcode project. **Important: ProtoKit currently supports gRPC-Swift version 1.x.** ProtoKit will automatically configure the generated transport to use it.
 
 #### For Gradle (in your KMP module)
-In your module's `build.gradle.kts`, apply the ProtoKit plugin:
+In your module's `build.gradle.kts`, apply the plugin and add the runtime SDK. 
+
+**Important:** To ensure the iOS native bridge works correctly, you **must** use `api()` instead of `implementation()` for the SDK. This allows the generated gRPC models and response types to be visible to the iOS platform. Additionally, you **must** `export()` the library in your iOS framework configuration.
 
 ```kotlin
 plugins {
-    id("com.fames.protokit.plugin") version "0.1.1"
+    id("com.fames.protokit.plugin") version "0.1.2"
+}
+
+kotlin {
+    // 1. Mandatory: Add the SDK as an 'api' dependency for iOS bridge support
+    sourceSets {
+        commonMain.dependencies {
+            api("com.fames.protokit:protokit-sdk:0.1.1")
+        }
+    }
+
+    // 2. Mandatory: Export the library in your iOS framework targets
+    listOf(
+        iosX64(),
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "Shared"
+            export("com.fames.protokit:protokit-sdk:0.1.1")
+        }
+    }
 }
 ```
 
