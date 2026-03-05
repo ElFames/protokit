@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.virtualtag.grpc.services";
+
+enum EAlarmType {
+	ALARM_TYPE_UNDEFINED = 0;
+	ALARM_VALIDATION_FAILED = 1;
+	ALARM_VIRTUALTAG_RENEWAL = 2;
+	ALARM_PAIRING_FAILED = 3;
+}
+
+enum EAlarmInfoType {
+	ALARM_INFO_TYPE_UNDEFINED = 0;
+	ALARM_TOKEN_INFO = 1; //TokenInfo
+	ALARM_PAIRING_INFO = 2; //PairingAlarmInfo
+}
+
+enum EReasonAlarmType {
+	ALARM_REASON_UNDEFINED = 0;
+	ALARM_TOKEN_LOCATION = 1;
+	ALARM_CLIENT_TIMEOUT = 2;
+	ALARM_REMOTE_ERROR = 3;
+	ALARM_DEVICE_KEY_ERROR = 4;
+}
+
+message TokenAlarmInfo {
+	int32 currentLocation = 1;
+	int64 tokenId = 2;
+	int64 cardId = 3;
+	int32 lastKnownSequence = 4;
+}
+
+message PairingAlarmInfo {
+	string userId = 1;
+	string wusParing = 2;
+}

@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.invoiceapi";
+
+import "DeviceContextApi.proto";
+import "GrpcSerializedData.proto";
+
+service InvoiceService {
+	rpc getOperationInvoice(InvoiceRequest) returns (InvoiceResponse);
+
+	rpc getOperationInvoicesVersion(ListInvoiceRequest) returns (OperationInvoicesVersionsResponse);
+
+	rpc getInvoiceInfoCB (InvoiceInfoCBRequest ) returns (InvoiceInfoCBResponse);
+
+	rpc getInvoiceByOtherOrderId(InvoiceRequest) returns (InvoiceResponse);
+}
+
+message InvoiceRequest {
+	string operationId = 1;
+	DeviceInfoProto deviceInfo = 2;
+}
+
+message ListInvoiceRequest {
+	RequestedInvoices requestedInvoices = 1;
+}
+
+message RequestedInvoices {
+	repeated string operationIds = 1;
+	DeviceInfoProto deviceInfo = 2;
+}
+
+message InvoiceResponse {
+	int32 resultCode  = 1;
+	Invoice invoice = 2 [deprecated = true];
+	OrderInvoices orderInvoices = 3;
+}
+
+message OrderInvoices
+{
+	string operationId = 1;
+	int32 version = 2;
+	Invoice simplifiedInvoice = 3;
+	repeated Invoice rectificationInvoices = 4;
+}
+
+message Invoice {
+	string operationId = 1;
+	string date = 2;
+	int32 amountCents = 3;
+	RenderedInvoiceType renderedInvoiceType = 4;
+	bytes renderedInvoice = 5;
+	int64 timeStamp = 6;
+	string numberInvoice = 7;
+}
+
+message OperationInvoicesVersionsResponse
+{
+	int32 resultCode  = 1;
+	map<string, int32> versions = 2;
+}
+enum RenderedInvoiceType {
+	JPG = 0;
+	PNG = 1;
+	PDF = 2;
+}
+
+message InvoiceInfoCBRequest {
+   string susNumber = 1;
+   int64 operationDate = 2;
+}
+
+message InvoiceInfoCBResponse {
+   int32 resultCode  = 1;
+   bool isExistInvoiceInfoCB = 2;
+   GrpcSerializedData infoInvoiceCB = 3;
+}
+
+message InvoiceInfoATM{
+	InvoiceSaleChannel invoiceSaleChannel = 1;
+	string orderIdPrevious = 2;
+	int64 previousFareAmountTotal = 3;
+	int64 previousInvoiceDateTime = 4;
+	repeated ProductInvoiceATM productInvoice = 5;
+}
+
+enum InvoiceSaleChannel {
+     MC = 0;
+     Others = 1;
+}
+
+message ProductInvoiceATM {
+	int32 productOwner = 1;
+	int32 productCode = 2;
+	int32 productAmount = 3;
+	int32 mediaCode = 4;
+}

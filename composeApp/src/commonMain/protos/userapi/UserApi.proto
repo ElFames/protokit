@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.userapi";
+
+import "DeviceContextApi.proto";
+import "GrpcSerializedData.proto";
+
+service UserAuthService {
+	rpc getAuthInfo(AuthInfoRequest) returns (AuthInfoResponse);
+	rpc authenticate(AuthRequest) returns (AuthResponse);
+	rpc getAuthToken(AuthTokenRequest) returns (AuthTokenResponse);
+	rpc updateUser(UpdateRequest) returns (UpdateResponse);
+}
+
+service UserService {
+	rpc updateUserProperties(UpdateRequest) returns (UpdateResponse);
+}
+enum EAuthProvider {
+	PROVIDER_UNDEFINED = 0;
+	PROVIDER_CAS = 1;
+	PROVIDER_KEYCLOAK = 2;
+	PROVIDER_GOOGLE = 3;
+	PROVIDER_FACEBOOK = 4;
+	PROVIDER_MWC2021 = 5;
+}
+
+enum EAuthResultCode {
+	AUTH_UNDEFINED = 0;
+	AUTH_RESULT_OK = 1;
+	AUTH_RESULT_ERROR = 2;
+	AUTH_RESULT_INVALID_TICKET = 3;
+	AUTH_RESULT_INVALID_SERVICE = 4;
+	AUTH_RESULT_INVALID_CREDENTIALS_PASSWORD = 5;
+	AUTH_ACCOUNT_DISABLE = 6;
+	AUTH_CODE_ACCOUNT_NOT_ACTIVATE = 7;
+	AUTH_RESULT_INVALID_CREDENTIALS_USERNAME = 8;
+}
+
+message UpdateRequest{
+	string authToken = 1;
+	EAuthProvider authProvider = 2;
+}
+
+message UpdateResponse{
+	EAuthResultCode resultCode = 1;
+}
+
+
+message AuthInfoRequest {
+	DeviceInfoProto deviceInfo = 1;
+	EAuthProvider authProvider = 2;
+}
+
+message AuthInfoResponse {
+	EAuthProvider authProvider = 1;
+	GrpcSerializedData authInfo = 2;
+}
+
+message AuthRequest {
+	DeviceInfoProto deviceInfo = 1;
+	GrpcSerializedData authInfo = 2;
+	EAuthProvider authProvider = 3;
+	int32 versionAuthProvider = 4;
+}
+
+message AuthResponse {
+	EAuthResultCode resultCode = 1;
+	string authToken = 2;
+	EAuthProvider authProvider = 3;
+}
+
+message AuthTokenRequest {
+	DeviceInfoProto deviceInfo = 1;
+	string smartingUserId = 2;
+}
+
+message AuthTokenResponse {
+	EAuthResultCode resultCode = 1;
+	string authToken = 2;
+}

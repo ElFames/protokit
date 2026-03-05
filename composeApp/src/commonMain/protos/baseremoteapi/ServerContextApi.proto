@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.baseremoteapi.grpc.services";
+
+import "DeviceContextApi.proto";
+import "MotorcloudCommon.proto";
+
+service ServerContextService {
+	rpc getServerContext(ServerContextRequest) returns (ServerContextResponse);
+	rpc serverStatus(ServerStatusRequest) returns (ServerStatusResponse);
+	rpc getAccessRights(AccessRightsRequest) returns (AccessRightsResponse);
+}
+
+message ServiceUnavailabilityProto {
+	int64 startTime = 1;
+	int64 endTime = 2;
+	int32 serviceId = 3;
+	MessageProto message = 4;
+}
+
+message ServerContextRequest {
+	DeviceInfoProto deviceInfo = 1;
+}
+
+message ServerContextResponse {
+	repeated ServiceUnavailabilityProto backOfficeUnavailability = 1;
+	int64 date = 2;
+}
+
+message ServerStatusRequest {
+
+}
+
+message ServerStatusResponse {
+	int32 status = 1;
+}
+
+enum EServerStatus {
+	SERVER_OK = 0;
+	SERVER_MAINTENANCE = 1;
+}
+
+message AccessRights {
+	repeated AccessRight accessRights = 1;
+}
+
+message AccessRight {
+	int32 right = 1;
+	int32 state = 2;
+}
+
+message AccessRightsRequest {
+	DeviceInfoProto deviceInfo = 1;
+}
+
+message AccessRightsResponse {
+	int32 status = 1;
+	map<int32, AccessRights> accessRightsByVersionCode =  2;
+}

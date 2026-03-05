@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.selling.grpc.services";
+
+import "GrpcSerializedData.proto";
+
+service SellingService {
+
+	rpc checkout(OrderRequest)  returns (CheckoutResponse);
+	
+	rpc getUserCatalog(UserCatalogRequest) returns (UserCatalogResponse);
+
+	rpc getOrderInfoByPaymentId(OrderInfoByPaymentIdRequest) returns (OrderInfoResponse);
+
+	rpc createOrder(OrderRequest) returns (CreateOrderResponse);
+
+}
+
+message OrderRequest {
+	string pvvToken = 1;
+	repeated OrderItem orderItem = 2;
+	repeated int32 suportedGateways = 3 [deprecated=true];
+	bytes deviceId = 4;
+	OrderPaymentRequest orderPaymentRequest = 5;
+}
+
+message OrderPaymentRequest {
+	repeated int32 supportedGateways = 1;
+	PaymentMethodRequest paymentMethodRequest = 2;
+
+	enum PaymentMethodRequest {
+		PaymentMethodRequest_CREDITCARD = 0;
+		PaymentMethodRequest_GOOGLEPAY = 1;
+		PaymentMethodRequest_BIZUM = 2;
+		PaymentMethodRequest_APPLEPAY = 3;
+	}
+}
+
+message CheckoutResponse {
+	int32 status = 1;
+	string orderId = 2;
+	OrderPaymentInfo orderPaymentInfo = 3;
+}
+
+message OrderItem {
+	int32 qty = 1;
+	Product product = 2;
+}
+
+message Product {
+	int32 catalogId = 1; 
+	int32 productId = 2; //TODO  enum con el tipo de producto ProductGrpcSerializedDataType
+	GrpcSerializedData productInfo = 3;
+}
+
+message OrderPaymentInfo {
+	string paymentId = 1;
+	int32 amount = 2; 
+	repeated int32 availableGateways = 3;  //TODO revisar si hace falta
+}
+
+message UserCatalogRequest {
+	string pvvToken = 1;
+	GrpcSerializedData userCatalogInfo = 2;
+}
+
+message UserCatalogResponse {
+	int32 status = 1;
+	repeated Product product = 2;
+}
+
+message OrderInfoByPaymentIdRequest {
+	string paymentId = 1;
+}
+
+message OrderInfoResponse {
+	int32 status = 1; //EResultStatus
+	OrderInfo orderInfo = 2;
+}
+
+message OrderInfo {
+	string orderId = 1;
+	string userId = 2;
+	string deviceId = 3;
+	int32 status = 4; //EOrderStatus
+	repeated int32 orderItemStatuses = 5; //list<EOrderStatus>
+	OrderPaymentInfo orderPaymentInfo = 6;
+}
+
+message CreateOrderResponse {
+	int32 status = 1;
+	string orderId = 2;
+	repeated OrderItem orderItem = 3;
+}

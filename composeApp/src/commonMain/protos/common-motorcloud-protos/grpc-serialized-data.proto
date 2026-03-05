@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.data.protobuf";
+
+message ProtoBufData {
+	int32 type = 1;
+	bytes data = 2;
+}

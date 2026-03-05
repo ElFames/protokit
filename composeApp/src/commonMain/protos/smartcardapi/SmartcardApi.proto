@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+
+option java_package = "es.smarting.motorcloud.apis.smartcard.grpc.services";
+
+import "GrpcSerializedData.proto";
+import "DeviceContextApi.proto";
+
+service SmartcardService {
+	rpc executeDirectOperation(DirectOperationRequest) returns (SmartcardOperationResult);
+	
+	rpc updateCard(UpdateCardRequest) returns (SmartcardOperationResult);	
+	
+	rpc smartCardResponse(SmartcardResponse) returns (SmartcardOperationResult);
+}
+
+message DirectOperationRequest{
+	DeviceInfoProto deviceInfo = 1;
+	int32 operationType = 2; //TODO  enum con el tipo de operación 
+	Iso14443Info iso14443Info = 3;
+	GrpcSerializedData orderInfo = 4; //initialCmd
+}
+
+message Iso14443Info {
+	bytes uid = 1;
+	bytes ats = 2;
+}
+
+message UpdateCardRequest {
+	DeviceInfoProto deviceInfo = 1;
+	int64 susNumber = 2;	
+	Iso14443Info iso14443Info = 3;
+	GrpcSerializedData orderInfo = 4; //initialCmd
+}
+
+message SmartcardResponse{
+	string operationId = 1;
+	CommandBatchResponse commandBatchResponse = 2;
+}
+
+message SmartcardOperationResult{
+	string operationId = 1;
+	int32 resultCodeDeprecated = 2 [deprecated=true];
+
+	oneof result {
+      CommandBatch commandBatch  = 3;
+		SmartCardOperationExecutionResult resultInfo  = 4;
+  }
+	int32 resultCode = 5; // NEW
+}
+
+message Command {
+	bytes commandBytes = 1;
+	string responseRegex = 2;
+}
+
+message CommandBatch {
+	string session = 1;
+	int32 sequenceId = 2;
+	repeated Command commandList = 3;
+}
+
+message CommandResponse {
+	bytes response = 1;
+}
+
+message CommandBatchResponse {
+	string session = 1;
+	int32 sequenceId = 2;
+	repeated CommandResponse responseList = 3;
+}
+
+message SmartCardOperationExecutionResult {
+	int32 statusDeprecated = 1 [deprecated=true];
+	repeated string executedOperationsIds = 2;
+	GrpcSerializedData cardContent =3;
+	int32 subStatus = 4;
+	int32 status = 5;  // NEW
+}
+
+
+
+
+
+
+

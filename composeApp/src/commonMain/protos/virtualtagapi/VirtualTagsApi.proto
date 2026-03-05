@@ -1,0 +1,291 @@
+syntax = "proto3";
+
+option swift_prefix = "VT";
+option java_package = "es.smarting.motorcloud.apis.virtualtag.grpc.services";
+
+import "DeviceContextApi.proto";
+import "MotorcloudCommon.proto";
+import "GrpcSerializedData.proto";
+import "google/protobuf/empty.proto";
+
+service VirtualTagService {
+	rpc getVirtualTags(VirtualTagsRequest) returns (VirtualTagsResponse);
+
+	rpc getKey(GetKeyRequest)  returns (GetKeyResponse);
+	
+	rpc pushVirtualTags(PushVirtualTagsRequest)  returns (PushVirtualTagsResponse);
+	
+	rpc getVirtualTagLocation(getVirtualTagLocationRequest)  returns (getVirtualTagLocationResult);
+	
+	rpc getUserInfo(UserInfoRequest)  returns (UserInfoResponse);
+	
+	rpc pair(PairApiRequest) returns (PairApiResponse);
+	
+	rpc getVirtualTagAck(VirtualTagsAckRequest)  returns (VirtualTagsAckResponse);
+
+	rpc getVirtualTagMetadata(GetVirtualTagMetadataRequest)  returns (GetVirtualTagMetadataResult);
+
+	rpc sendAlarm(SendAlarmRequest)  returns (SendAlarmResult);
+
+	rpc uploadHceTransactionRegisters(UploadHceTransactionRegistersRequest) returns (UploadHceTransactionRegisterResponse);
+
+	rpc getWalletConf(google.protobuf.Empty) returns (WalletConfResponse);
+
+	rpc unPairForced(UnPairForcedRequest) returns (UnPairForcedResponse);
+
+	rpc syncVirtualTags(SyncVirtualTagsRequest)  returns (SyncVirtualTagsResult);
+
+}
+
+message SendAlarmRequest{
+	DeviceInfoProto deviceInfo = 1;
+	string message = 2;
+	int64 timestamp = 3;
+	int32 alarmType = 4; //EAlarmType : xk a saltado la alarma
+	int32 alarmInfoType = 5; //TokenInfo: tipo de informacion asociada
+	GrpcSerializedData alarmInfo = 6;
+	int32 alarmReason = 7; //EReasonAlarmType
+}
+
+message SendAlarmResult {
+	int32 status = 1;
+}
+
+message VirtualTagsAckRequest {
+	string ackId = 1;
+}
+
+message VirtualTagsAckResponse {
+	int32 status = 1;
+	string ackId = 2;
+}
+
+
+message PairApiRequest {
+	DeviceInfoProto deviceInfo = 1;
+	string wusParing = 2;
+	EDeviceAppPair deviceAppPair = 3;
+}
+
+message PairApiResponse {
+	int32 status = 1;
+	string apiKeyApp = 2;
+}
+
+
+message UserInfoRequest {
+	string userId = 1;
+}
+
+message UserInfoResponse {
+	int32 status = 1;
+	string userId = 2;
+	UserInfo registration = 3;
+	PairingInfo pairingInfo = 4;
+	repeated SusInfo susList = 5;
+	map<string, string> additionalInfo =  6;
+}
+
+message UserInfo {
+	int64 registrationDate = 1;
+	map<string, string> userData =  2; //Deprecated
+}
+
+message SusInfo {
+	string susNumber = 1;
+	string susUid = 2;
+	int64 lifeLimit = 3;
+}
+
+message PairingInfo {
+	string wusId = 1;
+	int64 date = 2;
+}
+
+message getVirtualTagLocationRequest {
+	int64 tokenId = 1;
+}
+
+message getVirtualTagLocationResult {
+	int32 status = 1;
+	int32 location = 2;
+}
+
+message VirtualTagsRequest {
+	DeviceInfoProto deviceInfo = 1;
+	EDeviceAppPair deviceAppPair = 2;
+}
+
+message PushVirtualTagsResponse {
+	int32 status = 1;
+}
+
+message VirtualTagsResponse {
+	int32 status = 1; //estado de la llamada de virtualtags response
+	repeated VirtualTagDataResponse virtualTagDataResponse =2;
+	string ackId = 4;
+}
+
+message VirtualTagDataResponse {
+	int32 status = 1;//estado del virtual tag
+	VirtualTagData virtualTagData = 2;
+	OperationExecutionResult executionResult = 3;
+}
+
+message OperationExecutionResult {
+	int32 status = 1; //estado de la ejecució
+	repeated string executedOperationsIds = 2;
+}
+
+message VirtualTagData {
+	bool isEncrypted = 1;
+	int32 keyType = 2;
+	int32 encryptionType = 3;
+	bytes virtualTag = 4;
+	bytes virtualTagLife = 5;
+	TokenMetadata tokenMetadata = 6;
+	TokenLifeMetadata tokenLifeMetadata = 7;
+	CardStructureMetadata cardStructureMetadata = 8;
+	TokenExtraInfo tokenExtraInfo = 9;
+}
+
+message TokenMetadata {
+	int32 issuer = 1;
+	int64 tokenId = 2;
+	int64 sequence = 3;
+	int32 tokenVersion = 4;
+	int32 lastStoringReason = 5;
+}
+
+message TokenLifeMetadata {
+	int32 lifeLimit = 1;
+	int32 renewThresholdInSec = 2;
+}
+
+message CardStructureMetadata {
+	int32 cardStructureId = 1;
+	int64 cardId = 2;
+}
+
+message TokenExtraInfo {
+	int64 sourceTokenId = 1;
+	bytes historicalBytes = 2;
+}
+
+message GetKeyRequest {
+	int32 keyType = 1;
+	DeviceInfoProto deviceInfo = 2;
+}
+
+message GetKeyResponse {
+	Key key = 1;
+	int32 resultCode = 2;
+}
+
+message Key {
+	int32 type = 1;
+	string name = 2;
+	int32 length = 3;
+	bytes value = 4;
+	int32 version = 5;
+}
+
+message PushVirtualTagsRequest {
+	repeated VirtualTagData virtualCards =1;
+	DeviceInfoProto deviceInfo = 2;
+	EPushReason reason = 3;
+	EDeviceAppPair deviceAppPair = 4;
+}
+
+message GetVirtualTagMetadataRequest {
+	repeated int64 listTokenId = 1;
+}
+
+message GetVirtualTagMetadataResult {
+	int32 status = 1;
+	repeated VirtualTagMetadata listVirtualTagMetadata = 2;
+}
+
+message VirtualTagMetadata {
+	TokenMetadata tokenMetadata = 1;
+	CardStructureMetadata cardStructureMetadata = 2;
+	int32 tokenStatus = 3;
+	int32 currentLocation = 4;
+	int64 sourceTokenId = 5;
+}
+
+enum EPushReason {
+	REASON_UNDEFINED = 0;
+	REASON_UNPAIRING = 1;
+	REASON_VIRTUALTAG_MODIFIED = 2;
+	REASON_UNPAIRING_FORCED = 3;
+	REASON_VIRTUALTAG_UPDATE = 4;
+}
+
+message SyncVirtualTagsRequest {
+	DeviceInfoProto deviceInfo = 1;
+}
+
+message SyncVirtualTagsResult {
+	int32 status = 1; //estado de la ejecució
+}
+
+message UploadHceTransactionRegistersRequest {
+	repeated HceTransactionRegister transactions = 1;
+}
+
+message UploadHceTransactionRegisterResponse {
+	int32 status = 1;
+}
+
+message ChangeContext {
+	bytes samHsmId = 1;
+	int32 timeStampSeconds = 2;
+	int32 authId = 3;
+	int32 keyId = 4;
+	int32 keyVersion = 5;
+	bytes equipmentId = 6;
+}
+
+message HceTransactionRegister {
+	string registerId = 1;
+	int32 result = 2;
+	int32 lastStep = 3;
+	int64 hceStartEpoch = 4;
+	int32 hceDuration = 5;
+	string deviceId = 6;
+	string appInstanceId = 7;
+	string userId = 8;
+	int32 versionCode = 9;
+	string osVersion = 10;
+	string deviceMaker = 11;
+	string deviceModel = 12;
+	VirtualTagMetadata virtualTagMetadataBefore = 13;
+	VirtualTagMetadata virtualTagMetadataAfter = 14;
+	ChangeContext changeContext = 15;
+	bytes accessPoint = 16;
+	string validationProgress = 17;
+	int64 validationBusinessLogicStartEpoch = 18;
+	int64 validationBusinessLogicDurationMillis = 19;
+}
+
+message WalletConfResponse {
+	int32 status = 1;
+	int32 maxSusAvailable =  2;
+}
+
+message UnPairForcedRequest {
+	DeviceInfoProto deviceInfo = 1;
+	string wusParing = 2;
+}
+
+message UnPairForcedResponse {
+	int32 status = 1;
+}
+
+enum EDeviceAppPair {
+	UNDEFINED = 0;
+	ATM = 5;
+	TMB = 2;
+	FGC = 3;
+}

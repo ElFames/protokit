@@ -1,0 +1,355 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.pvv.grpc.services";
+
+import "GrpcSerializedData.proto";
+
+service PvvService {
+  rpc login(LoginRequest) returns (LoginResponse);
+
+  rpc logout(LogoutRequest) returns (LogoutResponse);
+
+  rpc pvvRegister(PvvRegisterRequest) returns (PvvRegisterResponse);
+
+  rpc isWusRegistered(IsWusRegisteredRequest) returns (IsWusRegisteredResponse);
+
+  rpc getOperationStatus(GetOperationStatusRequest) returns (GetOperationStatusResponse);
+
+  rpc pairWusUser(PairWusUserRequest)  returns (PairWusUserResponse);
+
+  rpc unPairWusUser(UnPairWusUserRequest)  returns (UnPairWusUserResponse);
+
+  rpc getUserInfo(UserInfoRequest) returns (UserInfoResponse);
+
+  rpc getUserInfoFromUserIdWus(UserInfoFromIdWusRequest) returns (UserInfoResponse);
+
+  rpc unPairForcedWusUser(UnPairForcedWusUserRequest) returns (UnPairForcedWusUserResponse);
+
+  rpc getUserInfoMC(UserInfoRequest) returns (UserInfoMCResponse);
+
+  rpc getUserInfoMCFromUserIdWus(UserInfoFromIdWusRequest) returns (UserInfoMCResponse);
+
+  rpc getUserInfoCB(UserInfoRequest) returns (UserInfoCBResponse);
+
+  rpc isWusRegisteredInMC(IsWusRegisteredRequest) returns (IsWusRegisteredResponse);
+
+  rpc unPairOtherWusUser(UnPairOtherWusUserRequest)  returns (UnPairOtherWusUserResponse);
+
+  rpc getOperationsInfo(GetOperationStatusRequest) returns (GetOperationsInfoResponse);
+
+  rpc cancelOperation(CancelOperationRequest) returns (CancelOperationResponse);
+
+  rpc getPairForcedInfo(PairForcedInfoRequest) returns (PairForcedInfoResponse);
+
+  rpc isRegisterUserCB(isRegisterUserCBRequest) returns (isRegisterUserCBResponse);
+
+  rpc verificationUserInfoCB(verificationUserInfoCBRequest) returns (verificationUserInfoCBResponse);
+
+  rpc registerUserCB(RegisterUserCBRequest) returns (RegisterUserCBResponse);
+
+  rpc validateAccount(ValidateAccountRequest) returns (ValidateAccountResponse);
+
+  rpc generateCode(GenerateCodeRequest) returns (GenerateCodeResponse);
+
+  rpc updateUserCB(UpdateUserCBRequest) returns (UpdateUserCBResponse);
+
+  rpc isAccountExistCB(IsAccountExistCBRequest) returns (IsAccountExistCBResponse);
+
+  rpc processOrder(ProcessOrderRequest) returns (ProcessOrderResponse);
+
+}
+
+
+message LoginRequest {
+  string authToken = 1;
+}
+
+message LoginResponse {
+  int32 status = 1;
+  string pvvToken = 2;
+}
+
+message LogoutRequest {
+  string pvvToken = 1;
+}
+
+message LogoutResponse {
+  int32 status = 1;
+}
+
+message PvvRegisterRequest {
+  string authToken = 1;
+}
+
+message PvvRegisterResponse {
+  int32 status = 1;
+  string pvvToken = 2;
+}
+
+message IsWusRegisteredRequest {
+  string pvvToken = 1;
+}
+
+message IsWusRegisteredResponse {
+  int32 status = 1;
+  bool isWusRegistered = 2;
+}
+
+message GetOperationStatusRequest {
+  string operationId = 1;
+}
+
+message GetOperationStatusResponse {
+  int32 status = 1;
+}
+
+message PairWusUserRequest {
+  string pvvToken = 1;
+  string wusId = 2;
+  string wusSignature = 3;
+  int32 notificationMode = 4;
+}
+
+message PairWusUserResponse {
+  int32 status = 1;
+  string wusPairing = 2;
+  string apiAppKey = 3;
+}
+
+message UnPairWusUserRequest {
+  string pvvToken = 1;
+  string wusId = 2;
+  bool forced = 3;
+  int32 notificationMode = 4;
+}
+
+message UnPairOtherWusUserRequest {
+  string pvvToken = 1;
+  string userIdWus = 2;
+  string wusId = 3;
+}
+
+message UnPairWusUserResponse {
+  int32 status = 1;
+  string wusPairing = 2;
+}
+
+message UnPairOtherWusUserResponse {
+  int32 status = 1;
+  string wusPairing = 2;
+}
+
+message UserInfoRequest {
+  string pvvToken = 1;
+  repeated UserInfoRequestType userInfoRequestType = 2;
+  UserInfoRequestVersion userInfoRequestVersion = 3;
+
+  enum UserInfoRequestType {
+    ALL = 0;
+    USER_INFO = 1;
+    PROFILE_INFO = 2;
+    CARDS_INFO = 3;
+  }
+
+  enum UserInfoRequestVersion {
+    UserInfoRequestVersion_Undefined = 0;
+    UserInfoRequestVersion_v1 = 1;
+    UserInfoRequestVersion_v2 = 2;
+  }
+
+}
+
+message UserInfoFromIdWusRequest {
+  string userIdWus = 1;
+}
+
+message UserInfoResponse {
+  int32 status = 1;
+  string userId = 2;
+  GrpcSerializedData userInfo = 3;
+  UserInfo registration = 4;
+  PairingInfo pairingInfo = 5;
+  repeated SusInfo susList = 6;
+  map<string, string> additionalInfo = 7;
+}
+
+message UserInfoCBResponse {
+  int32 status = 1;
+  GrpcSerializedData userInfo = 2;
+}
+
+message UserInfoMCResponse {
+  int32 status = 1;
+  string userId = 2;
+  UserInfo registration = 3;
+  PairingInfo pairingInfo = 4;
+  repeated SusInfo susList = 5;
+  map<string, string> additionalInfo = 6;
+}
+
+
+message UserInfo {
+  int64 registrationDate = 1;
+  map<string, string> userData = 2; //Deprecated
+}
+
+message PairingInfo {
+  string wusId = 1;
+  int64 date = 2;
+}
+
+message SusInfo {
+  string susNumber = 1;
+  string susUid = 2;
+  int64 lifeLimit = 3;
+}
+
+message UnPairForcedWusUserRequest {
+  string pvvToken = 1;
+  string pairedWusId = 2;
+}
+
+message UnPairForcedWusUserResponse {
+  int32 status = 1;
+  string pvvToken = 2;
+}
+
+message GetOperationsInfoResponse {
+  int32 status = 1;
+  repeated OperationInfo operationsInfo = 2;
+}
+
+message OperationInfo {
+  int32 status = 1;
+  OperationResultInfo operationResultInfo = 2;
+  OperationExecutionResult operationExecutionResult = 3;
+}
+
+message OperationResultInfo {
+  string operationId = 1;
+  string vendorOrderId = 2;
+  string date = 3;
+  string susNumber = 4;
+  string susUid = 5;
+  int32 vendorId = 6;
+}
+
+message OperationExecutionResult {
+  int32 executionStatus = 1;
+  string date = 2;
+}
+
+message CancelOperationRequest {
+  string orderId = 1;
+  string operationId = 2;
+}
+
+message CancelOperationResponse {
+  int32 status = 1;
+}
+
+message PairForcedInfoRequest
+{
+  string pvvToken = 1;
+  string currentWusId = 2;
+}
+
+message PairForcedInfoResponse
+{
+  int32 status = 1;
+  ForcedPairs forcedPairs = 2;
+  int32 forcedPairsLeft = 3;
+  string counterResetDate = 4;
+}
+message ForcedPairs
+{
+  repeated ForcedPair list = 1;
+}
+
+message ForcedPair
+{
+  int64 timestamp = 1;
+  string wus_id = 2;
+  int32 operator_id = 3;
+  bool ignoreForRestoring = 4;
+}
+
+message ProcessOrderRequest {
+  string orderId = 2;
+}
+
+message ProcessOrderResponse {
+  int32 status = 1;
+}
+message isRegisterUserCBRequest {
+  GrpcSerializedData isRegisterUserInfoRequest = 1;
+}
+
+message isRegisterUserCBResponse{
+  int32 status = 1;
+}
+
+message verificationUserInfoCBRequest{
+  int32 type = 1;
+  GrpcSerializedData verificationUserInfoCRequest = 2;
+}
+
+message verificationUserInfoCBResponse{
+  int32 status = 1;
+  GrpcSerializedData verificationUserInfoResponse = 2;
+}
+
+message RegisterUserCBRequest {
+  GrpcSerializedData userRegistrationInfoRequest = 1;
+}
+
+message RegisterUserCBResponse {
+  int32 status = 1;
+  GrpcSerializedData userRegistrationInfoResponse = 2;
+}
+
+message ValidateAccountRequest {
+  int32 type = 1;
+  GrpcSerializedData validateAccountInfo = 2;
+}
+
+message ValidateAccountResponse {
+  int32 status = 1;
+  int32 verificationUserAttempts = 2;
+
+  enum EValidateAccountResultStatus {
+    OK = 0;
+    ERROR_INTERNAL = 1;
+    ERROR_LIMIT_ATTEMPTS = 2;
+    ERROR_LIMIT_EXPIRATION = 3;
+    ERROR_ATTEMPTS_GO_DOWN = 4;
+    ERROR_ACCOUNT_ALREADY_VALIDATE = 5;
+    ERROR_ACCOUNT_NOT_EXIST = 6;
+  }
+}
+
+message GenerateCodeRequest {
+  int32 type = 1;
+  GrpcSerializedData generateCodeInfo = 2;
+}
+
+message GenerateCodeResponse {
+  int32 status = 1;
+}
+
+
+message UpdateUserCBRequest {
+  GrpcSerializedData userUpdateInfoRequest = 1;
+}
+
+message UpdateUserCBResponse {
+  int32 status = 1;
+}
+
+message IsAccountExistCBRequest {
+  GrpcSerializedData isAccountExistCBRequest = 1;
+}
+
+message IsAccountExistCBResponse {
+  int32 status = 1;
+}

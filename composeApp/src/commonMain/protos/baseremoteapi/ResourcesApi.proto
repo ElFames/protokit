@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.baseremoteapi.grpc.services";
+
+import "DeviceContextApi.proto";
+import "GrpcSerializedData.proto";
+
+service ResourcesService {
+	rpc getResourcesCurrentVersions(ResourcesRequest) returns (ResourcesVersionsResponse);
+	rpc getResources(ResourcesRequest) returns (ResourcesResponse);
+	rpc getResourcesStream(ResourcesRequest) returns (stream ResourcesStreamResponse);
+	rpc getResourcesStreamProto(ResourcesRequest) returns (stream ResourcesResponse);
+}
+
+message ResourceProto {
+	int32 resourceId = 1;
+	int32 version = 2;
+	repeated GrpcSerializedData resourceData = 3;
+}
+
+message ResourcesRequest {
+	repeated int32 resourceIdList = 1;
+	DeviceInfoProto deviceInfo = 2;
+}
+
+message ResourcesVersionsResponse {
+	repeated int32 resourcesVersions = 1;
+}
+
+message ResourcesResponse {
+	repeated ResourceProto resources = 1;
+}
+
+message ResourcesStreamResponse {
+	bytes resources = 1;
+}
+
+

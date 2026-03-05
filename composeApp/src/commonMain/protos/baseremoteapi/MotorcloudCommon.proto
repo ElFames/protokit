@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.baseremoteapi.grpc.data";
+
+message MessageHeaderProto {
+	EMessageHeaderTypeProto headerType = 1;
+	string headerMessage = 2;
+	map<string, string> headerMessageByLocale = 3;
+}
+
+message MessageContentProto {
+	EMessageContentTypeProto contentType = 1;
+	string contentMessage = 2;
+	map<string, string> contentMessageByLocale = 3;
+}
+
+message MessageOptionProto {
+	string text = 1;
+	bool closeMessage = 2;
+	repeated EMessageActionProto actions = 3;
+	map<string, string> textByLocale = 4;
+}
+
+message MessageProto {
+	int32 id = 1;
+	string tag = 2;
+	repeated int32 triggers = 3;
+	string locale = 4;
+	EMessageTypeProto type = 5;
+	MessageHeaderProto header = 6;
+	MessageContentProto content = 7;
+	repeated MessageOptionProto options = 8;
+	repeated EMessageActionProto onShowActions = 9;
+	repeated EMessageActionProto onReadActions = 10;
+	EMessageSourceProto source = 11;
+}
+
+enum EMessageSourceProto {
+	SOURCE_UNDEFINED = 0;
+    SOURCE_APK = 1;
+    SOURCE_RESOURCE = 2;
+    SOURCE_EMBEDDED = 3;
+}
+
+enum EMessageTypeProto {
+	TYPE_UNDEFINED = 0;
+    TYPE_BLOCKING = 1;
+    TYPE_NON_BLOCKING = 3;
+    TYPE_BACKGROUND = 4;
+    TYPE_TEMPORARY = 5;
+    TYPE_SYSTEM_NOTIFICATION = 6;
+}
+
+enum EMessageHeaderTypeProto {
+	HEADER_UNDEFINED = 0;
+    HEADER_TEXT = 1;
+    HEADER_ICON_AND_TEXT = 2;
+    HEADER_HTML = 3;
+}
+
+enum EMessageContentTypeProto {
+	CONTENT_UNDEFINED = 0;
+    CONTENT_TEXT = 1;
+    CONTENT_ICON_AND_TEXT = 2;
+    CONTENT_HTML = 3;
+}
+
+enum EMessageActionProto {
+	ACTION_UNDEFINED = 0;
+    ACTION_QUIT_APPLICATION = 1;
+    ACTION_RESTART_APPLICATION = 2;
+    ACTION_RECREATE_ACTIVITY = 3;
+    ACTION_GO_BACK = 4;
+    ACTION_GO_HOME = 5;
+    ACTION_GO_NFC_SETTINGS = 6;
+    ACTION_SHOW_PROGRESS = 7;
+    ACTION_CHANGE_APP_LOCALE = 8;
+	ACTION_CLOSE_MESSAGE = 9;
+}

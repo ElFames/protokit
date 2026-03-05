@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.atm.serializeddata.grpc";
+
+enum AtmGrpcSerializedDataType {
+  ATM_UNDEFINED_TYPE = 0;
+  ATM_CAS_DATA_REQUEST_TYPE = 1;
+  ATM_CAS_TICKET_TYPE = 2;
+}
+
+message AtmCasDataRequest {
+  string urlCasLogin = 1;
+  string hostRedirect = 2;
+  string param = 3;
+}
+
+message AtmCasTicket {
+  string ticket = 1;
+  string userLogin = 2;
+  string passwordLogin = 3;
+}

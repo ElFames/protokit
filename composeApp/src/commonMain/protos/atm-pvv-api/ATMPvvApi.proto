@@ -1,0 +1,422 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.atm.pvv";
+
+//General(Usuarios)
+enum ATMPvvGrpcSerializedDataType {
+  ATMUserType = 0;
+}
+
+enum ProductGrpcSerializedDataType {
+  Undefined = 0;
+  ATMUserRegisterProductType = 1;
+  ATMAddCardProductType = 2;
+  ATMAddPassProductType = 3;
+  ATMCompanionModeProductType = 4;
+  ATMReloadPassProductType = 5;
+  ATMChangeFareProductType = 6;
+  ATMInitialAddCardNtiuProductType = 7;
+  ATMInitialAddPassNtiuProductType = 8;
+  ATMCancelLoadProductType = 9;
+}
+
+message ATMUserRegisterProduct {
+  int32 price = 1;
+  int32 taxBase = 2;
+}
+
+message ATMAddCardProduct {
+  AddCardInfo addCardInfo = 1;
+  AddPassInfo addPassInfo = 2;
+}
+
+message ATMAddPassProduct {
+  int64 susNumber = 1;
+  int64 susUid = 2;
+  AddPassInfo addPassInfo = 3;
+  OperationsApiType operationsApiType = 4;
+}
+
+message ATMReloadPassProduct {
+  int64 susNumber = 1;
+  int64 susUid = 2;
+  ReloadPassInfo reloadPassInfo = 3;
+  OperationsApiType operationsApiType = 4;
+}
+
+message ATMCompanionModePassProduct {
+  bool allowCompanion = 1;
+  int32 passId = 2;
+  int64 susNumber = 3;
+  int64 susUid = 4;
+  OperationsApiType operationsApiType = 5;
+  int32 containerId = 6;
+}
+
+message ATMChangeFareProduct {
+  int64 susNumber = 1;
+  int64 susUid = 2;
+  int32 price = 3;
+  ChangeFareInfo changeFareInfo = 4;
+  OperationsApiType operationsApiType = 5;
+}
+
+message ChangeFareInfo {
+  int32 code = 1;
+  int64 saleDateTime = 2;
+  int64 saleDateTimeInvoice = 3;
+  string previousOrderId = 4;
+  int64 previousFareAmountBase = 5;
+  int64 previousFareAmountTotal = 6;
+  int64 previousFareTaxPercentage = 7;
+  string previousFareTaxName = 8;
+  int32 newFareTable = 9;
+  int64 newFareAmountBase = 10;
+  int64 newFareAmountTotal = 11;
+  int64 newFareTaxPercentage = 12;
+  string newFareTaxName = 13;
+  int32 owner = 14;
+  optional int64 invoiceExpeditionDateTimeIni = 15;
+  optional int64 invoiceExpeditionDateTimeEnd = 16;
+  repeated ATMProfileTitle profileTitle = 17;
+}
+
+message ATMInitialAddCardNtiuProduct {
+  InitialAddCardNtiuInfo addCardInfo = 1;
+}
+
+message InitialAddCardNtiuInfo {
+  string atmUserId = 1;
+  string address = 2;
+  string city = 3;
+  string province = 4;
+  string country = 5;
+  string postalCode = 6;
+  string receiverFirstName = 7;
+  string receiverLastName = 8;
+  string receiverSecondLastName = 9;
+  string mail = 10;
+  string phone = 11;
+  string requestIdSIC = 12;
+  int32 price = 13;
+  int32 taxBase = 14;
+}
+
+message ATMInitialAddPassNtiuProduct {
+  AddPassInfo addPassInfo = 1;
+  OperationsApiType operationsApiType = 2;
+}
+
+
+enum OperationsApiType {
+  OperationsApiType_Undefined = 0;
+  OperationsApiType_WUS = 1;
+  OperationsApiType_NTIU = 2;
+}
+
+
+message AddCardInfo {
+  int32 fareTableId = 1;
+  int32 price = 2;
+  int32 taxBase = 3;
+}
+
+message AddPassInfo {
+  int32 code = 1;
+  int32 fareTableId = 2;
+  int32 price = 3;
+  int32 taxBase = 4;
+  int32 containerId = 5;
+  int32 owner = 6;
+  repeated ATMProfileTitle profileTitle = 7;
+}
+
+message ReloadPassInfo {
+  int32 code = 1;
+  int32 fareTableId = 2;
+  int32 price = 3;
+  int32 taxBase = 4;
+  int32 containerId = 5;
+  int32 owner = 6;
+  repeated ATMProfileTitle profileTitle = 7;
+}
+
+message ATMCancelLoadProduct {
+  int64 susNumber = 1;
+  int64 susUid = 2;
+  CancelLoadInfo cancelLoadInfo = 3;
+  OperationsApiType operationsApiType = 4;
+}
+
+message CancelLoadInfo {
+  int32 code = 1;
+  int32 fareTableId = 2;
+  int32 price = 3;
+  int32 taxBase = 4;
+  int32 owner = 6;
+  int64 loadDataTime = 7;
+  optional string loadOrderId = 8;
+  repeated ATMProfileTitle profileTitle = 9;
+}
+
+message ATMProfileTitle {
+  int32 owner = 1;
+  int32 code = 2;
+}
+
+message ATMUserInfo {
+  repeated ATMProfileInfo profileInfo = 1;
+  string atmUserId = 2;
+  string firstName = 3 [deprecated = true];
+  string lastName = 4 [deprecated = true];
+  string secondLastName = 5 [deprecated = true];
+  ATMCustomerData customerData = 6;
+  repeated ATMSusData susData = 7;
+}
+
+message ATMSusData {
+  oneof instanceSus{
+    string susNumber = 1;
+    string requestId = 2;
+  }
+  ATMStatusSUS stateSUS = 3;
+  ATMTypeSUS typeSUS = 4;
+  string activationSusPin = 5;
+  bool isCanceled = 6;
+
+  enum ATMStatusSUS {
+    REQUESTED = 0;
+    MANUFACTURED = 1;
+    ISSUED = 2;
+    FAULTY = 3;
+  }
+
+  enum ATMTypeSUS {
+    UNDEFINED = 0;
+    PVC = 1;
+    VIRTUAL = 9;
+  }
+}
+
+
+message ATMProfileInfo {
+  int64 agencyId = 1;
+  int64 profileCode = 2;
+  int64 startValidityDate = 3;
+  int64 endValidityDate = 4;
+  string profileParam = 5;
+  repeated ATMProfileDocument docCategory = 6;
+}
+
+message ATMProfileDocument {
+  string docCategoryId = 1;
+  string docCategoryValue = 2;
+  string contentType = 3;
+  bytes documentImage = 4;
+}
+
+message ATMCustomerData {
+  string firstName = 1;
+  string lastName = 2;
+  string secondLastName = 3;
+  bool isAnonymous = 4;
+}
+
+message IsRegisterUserATM {
+  string firstName = 1;
+  string lastName = 2;
+  string secondLastName = 3;
+  int32 typeDocument = 4;
+  string document = 5;
+  int64 birthDate = 6;
+}
+
+message VerificationUserPica {
+  string firstName = 1;
+  string lastName = 2;
+  string secondLastName = 3;
+  int32 typeDocument = 4;
+  string document = 5;
+  int64 birthDate = 6;
+  string locale = 7;
+}
+
+
+message VerificationProfilePica {
+  string atmUserId = 1;
+  int32 typeDocument = 2;
+  string document = 3;
+  string locale = 4;
+}
+
+message VerificationBonusProfile {
+  string atmUserId = 1;
+  ATMBonusProfileType bonusProfile = 2;
+  int32 typeDocument = 3;
+  string document = 4;
+
+  enum ATMBonusProfileType {
+    UNDEFINED = 0;
+    SEPE_PROFILE = 1;
+    SOC_PROFILE = 2;
+    AJUNTAMENT_PROFILE = 3;
+  }
+}
+
+message VerificationBonusProfileResponse {
+  int32 zone = 1;
+}
+
+enum ATMVerificationUserInfoType {
+  USER_VERIFICATION = 0;
+  PROFILE_VERIFICATION = 1;
+  BONUS_PROFILE_VERIFICATION = 2;
+}
+
+enum ATMRegisterType {
+  REGISTER_ALL = 0;
+  REGISTER_ACCOUNT_ONLY = 1;
+  REGISTER_ANONYMOUS = 2;
+}
+
+message RegisterUserATMRequest {
+  int64 custIdCategoryId = 1;
+  string idCategoryValue = 2;
+  string codCustomer = 3;
+  string firstName = 4;
+  string lastName = 5;
+  string secondLastName = 6;
+  int64 birthDate = 7;
+  string country = 8;
+  string province = 9;
+  string city = 10;
+  string prefix = 11;
+  string telephone = 12;
+  string email = 13;
+  string locale = 14;
+  int64 sensoryHelpId = 15;
+  int64 agencyId = 16;
+  int64 sentNotifications = 17;
+  repeated DocumentUserATM documentUserATM = 18;
+  bytes password = 19;
+  bool isPicaValidate = 20;
+  ATMRegisterType typeRegister = 21;
+  string deviceId = 22;
+}
+
+message DocumentUserATM {
+  int64 typeDocument = 1;
+  string document = 2;
+  string contentType = 3;
+  bytes documentImage = 4;
+}
+
+message RegisterUserATMResponse {
+  int64 atmUser = 1;
+  int64 requestId = 2;
+}
+
+message ValidateAccountInfo {
+  string email = 1;
+  string code = 2;
+}
+
+message GenerateCodeAccountInfo {
+  string email = 1;
+}
+
+message GenerateCodeResetPassword {
+  string email = 1;
+}
+
+message ATMUpdateUserInfo {
+  string atmUserId = 1;
+  ATMUpdateType typeUpdate = 2;
+  ATMCreateProfileInfo profileInfo = 3;
+  ATMResetUserPassword resetPasswordInfo = 4;
+  ATMUpdateProfileInfo updateProfileInfo = 5;
+  string deviceId = 6;
+  ATMUpdateUser updateUser = 7;
+
+  enum ATMUpdateType {
+    CREATE_PROFILE = 0;
+    RESET_PASSWORD = 1;
+    UPDATE_PROFILE = 2;
+    UPDATE_USER_INFO = 3;
+  }
+}
+
+message ATMCreateProfileInfo {
+  int64 agencyId = 1;
+  int64 profileCode = 2;
+  int64 endValidityDate = 3;
+  ATMProfileDocument docCategory = 4;
+  bool isPicaValidate = 5;
+  bool isSOCValidate = 6;
+  optional ATMProfileDocument docCategory2 = 7;
+}
+
+message ATMResetUserPassword {
+  bytes passwordNew = 1;
+  string code = 2;
+  string mail = 3;
+}
+
+message IsAccountExistATM {
+  string email = 1;
+}
+
+message ATMUpdateProfileInfo {
+  int64 agencyId = 1;
+  int64 profileCode = 2;
+  int64 endValidityDate = 3;
+  ATMProfileDocument docCategory = 4;
+  bool isPicaValidate = 5;
+}
+
+message ATMUpdateUser {
+  int64 custIdCategoryId = 1;
+  string idCategoryValue = 2;
+  string codCustomer = 3;
+  string companyName = 4;
+  string firstName = 5;
+  string lastName = 6;
+  string secondLastName = 7;
+  int64 birthDate = 8;
+  string country = 9;
+  string province = 10;
+  string city = 11;
+  string prefix = 12;
+  string telephone = 13;
+  string email = 14;
+  string locale = 15;
+  int64 sensoryHelpId = 16;
+  int64 agencyId = 17;
+  int64 sentNotifications = 18;
+  repeated DocumentUserATM documentUserATM = 19;
+  bool isPicaValidate = 20;
+}
+message UserCatalogInfo {
+	ESourceInfoUserCatalog sourceInfo = 1;
+	repeated ATMProfileInfo profileInfo = 2;
+	int32 susDesignOwner = 3;
+	int32 susDesignCode = 4;
+  repeated int32 owner = 5;
+
+	enum ESourceInfoUserCatalog {
+		UNDEFINED = 0;
+		ATM_USER = 1;
+		PROFILE_INFO = 2;
+	}
+}
+
+message ATMProductInfo {
+	repeated ATMTitleInfo titlesInfo = 1;
+}
+
+message ATMTitleInfo {
+	int32 titleOwner = 1;
+	int32 titleCode = 2;
+}
+
+

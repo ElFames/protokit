@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+option java_package = "es.smarting.motorcloud.apis.paymentapi";
+
+import "DeviceContextApi.proto";
+import "GrpcSerializedData.proto";
+
+service PaymentService {
+	rpc getPaymentInfoOnStatusChange(PaymentInfoRequest) returns (PaymentResponse);
+	rpc pay(PaymentRequest) returns (PaymentResponse);
+	rpc getTransactionPaymentInfo(TransactionPaymentInfoRequest) returns (TransactionPaymentInfoResponse);
+}
+
+enum PaymentStatus {
+	REQUESTED = 0;
+	GATEWAY_SELECTED = 1;
+	PAID = 2;
+	ERROR = 3;
+	PAYING = 4;
+	TIMEOUT = 5;
+	GATEWAY_INFO_OK = 6;
+	TRANSACTION_DENIED = 7;
+	ERROR_BANKING_SYSTEMS = 8;
+	ERROR_GATEWAY_PAYMENTS = 9;
+	WRONG_CARD_INFO = 100;
+	WRONG_CVV_INFO = 101;
+	WRONG_EXPIRATION_DATE = 102;
+	ERROR_COMMUNICATION_BANKING_SYSTEMS = 103;
+	ERROR_AUTHENTICATION_BANKING_SYSTEMS = 104;
+	USER_CANCEL_PAYMENT = 105;
+	CARD_NOT_EXIST = 106;
+	SCA_REQUIRED = 201;
+}
+
+enum GatewayInfoType {
+	NONE = 0;
+	REDSYS = 1;
+	PAYCOMET = 2;
+	GOOGLEPAYINFO = 3;
+	PAYPAL = 4;
+	ADDONPAYMENT = 5;
+	FREEPAYMENTGATEWAY = 6;
+}
+
+enum EPaymentGatewayEvents {
+	INFOREQUEST = 0;
+	INFO = 1;
+	PAYMENT = 2;
+	PAYMENT_RESPONSE = 3;
+}
+
+enum PaymentMethod {
+	CREDITCARD = 0;
+	GOOGLEPAY = 1;
+	BIZUM = 2;
+	APPLEPAY = 3;
+}
+
+enum PaymentResultCode {
+	PAYMENT_OK = 0;
+	PAYMENT_TIMEOUT = 1;
+	PAYMENT_ERROR = 2;
+	PAYMENT_GATEWAY_INFO_OK = 3;
+}
+
+enum PaymentGrpcSerializedDataType {
+	PaymentEvent = 0;
+	RedsysStartInfo = 1;
+	RedsysPost = 2;
+	AddonpaymentsRequest = 3;
+	PayCometIFrame = 4;
+	PayCometStartIFrame = 5;
+}
+
+message PaymentInfoRequest {
+	string paymentUuid  = 1;
+	repeated PaymentStatus paymentStatus = 2;
+	int64 timeout = 3;
+	DeviceInfoProto deviceInfo = 4;
+	int64 userSessionId = 5;
+}
+
+message PaymentRequest {
+	string paymentUuid = 1;
+	int32 gatewayId = 2;
+	GatewayInfoType gatewayInfoType = 3 [deprecated=true];
+	GrpcSerializedData gatewayInfo = 4;
+	DeviceInfoProto deviceInfo = 5;
+	int64 userSessionId = 6;
+	EPaymentGatewayEvents gatewayEvent = 7;
+}	
+
+message PaymentResponse {
+	PaymentResultCode resultCode = 1 [deprecated=true];
+	GrpcSerializedData gatewayInfo = 2;
+	int32 paymentCode = 3;
+}
+
+message AddonpaymentsRequestProto {
+	string paymentId = 1;
+	string hppRequestProducerURL = 2;
+	string hppURL = 3;
+	string hppResponseNotificationURL = 4;
+	int32 paymentMethod = 5;
+	bytes paymentData = 6;
+	string merchantId = 7;
+}
+
+message PaycometStartIFrame {
+	string language = 1;
+	int32 operation = 2;
+}
+
+message PaycometIFrameInfo {
+	string iFrameInfo = 1;
+}
+
+message RedsysPostProto {
+	string paymentId = 1;
+    string host = 2;
+    string port = 3;
+    string endPoint = 4;
+    string merchantParameters = 5;
+    string signatureVersion = 6;
+    string merchantSignature = 7;
+}
+
+message RedsysStartInfoProto {
+	string language = 1;
+	int32 operation = 2;
+	PaymentMethod paymentMethod = 3;
+	bytes paymentData = 4;
+}
+
+message PaymentEventProto {
+	string paymentId = 1;
+    PaymentStatus paymentStatus = 2;
+    int32 amount = 3;
+    string currency = 4;
+    int64 startDate = 5;
+    int64 lastDate = 6;
+    GatewayInfoType gatewayId = 7;
+    string concept = 8;
+}
+
+message PaymentRequiredProto {
+	string paymentId = 1;
+	int32 amount = 2;
+	repeated int32 availableGateways = 3;
+}
+
+message TransactionPaymentInfoRequest {
+	string paymentId = 1;
+}
+
+message TransactionPaymentInfoResponse {
+	string paymentId = 1;
+	int32 paymentStatus = 2;
+	GrpcSerializedData transactionGatewayInfo = 3;
+}
+
+message AddonPaymentTransactionInfo {
+		string authcode = 1;
+		string message = 2;
+		string paymentRef = 3;
+}
+
+message RedsysTransactionInfo {
+	string dsOrder = 1;
+	string message = 2;
+}
+
+message PaycometTransactionInfo {
+	string order = 1;
+	string message = 2;
+}
+
+

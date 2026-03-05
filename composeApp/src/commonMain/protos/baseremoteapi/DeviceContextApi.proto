@@ -6,10 +6,12 @@ import "GrpcSerializedData.proto";
 
 service DeviceContextService {
 	rpc updateDeviceInfo(DeviceRequest) returns (DeviceInfoResponse);
-
+	
 	rpc openSession(DeviceRequest) returns (DeviceSessionResponse);
-
+	
 	rpc deviceVerification(DeviceVerificationRequest) returns (DeviceVerificationResponse);
+
+	rpc isDeviceInWhiteList (DeviceInWhiteListRequest) returns (DeviceInWhiteListResponse);
 }
 
 message DeviceRequest {
@@ -38,14 +40,28 @@ message DeviceInfoProto {
 	string deviceMaker = 5;
 	string deviceModel = 6;
 	string tamperStatus = 7;
-	string deviceLocale = 8;
+	string deviceLocale = 8; 
 	string appLocale = 9;
 	string fcmToken = 10;
 	DeviceSessionInfoProto sessionInfo = 11;
 	int32 versionCode = 12;
 	string appVersionName = 13;
 	bytes apnsToken = 14;
+	string appNameDescription = 15;
+	int32 appNameId = 16; //AppNameId
 }
+
+enum AppNameIdentifier {
+	AppName_Undefined = 0;
+	Tmobilitat_ATM = 1;
+	Tmobilitat_FGC = 2;
+	CarteraElectronica = 3;
+	Barik= 4;
+	BarikNfc= 5;
+	BarikMobile = 6;
+	BatNfc = 7;
+}
+
 
 message DeviceInfoResponse {
 	enum DeviceInfoStatus {
@@ -86,6 +102,7 @@ enum VerificationType {
 	GOOGLE_PLAY_INTEGRITY = 2;
 }
 
+
 message GooglePlayIntegrityResult {
 	int32 resultCode = 1; //GooglePlayIntegrityResultCode
 	string tokenResponse = 2; // si no pasa, attestationResult  = null
@@ -107,4 +124,16 @@ enum SafetyNetResultCode {
 	UNKNOWN = 0;
 	OK = 1;
 	GMS_NOT_AVAILABLE = 2; //NO_PASA_XK_NO_TIENES_GOOGLE_SERVICES. GMS
+}
+
+message DeviceInWhiteListRequest{
+	DeviceInfoProto deviceInfo = 1;
+}
+
+message DeviceInWhiteListResponse {
+	int32 resultCode = 1;
+	enum WhiteListFullAccessResultCode {
+		IS_IN_WHITE_LIST = 0;
+		IS_NOT_IN_WHITE_LIST = 1;
+	}
 }
